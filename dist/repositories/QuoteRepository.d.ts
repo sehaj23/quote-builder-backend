@@ -1,0 +1,15 @@
+import { Quote, QuoteLine, QuoteWithLines, CreateQuoteRequest, UpdateQuoteRequest } from '@/types/index.js';
+export declare class QuoteRepository {
+    private getDbConnection;
+    findByCompanyId(companyId: number, limit?: number, offset?: number): Promise<Quote[]>;
+    findById(id: number): Promise<Quote | null>;
+    findByIdWithLines(id: number): Promise<QuoteWithLines | null>;
+    getQuoteLines(quoteId: number): Promise<QuoteLine[]>;
+    create(quoteData: CreateQuoteRequest): Promise<number>;
+    update(id: number, quoteData: UpdateQuoteRequest): Promise<boolean>;
+    delete(id: number): Promise<boolean>;
+    search(companyId: number, query: string): Promise<Quote[]>;
+    duplicate(id: number, newQuoteNumber: string, newTier?: string): Promise<number>;
+    updateStatus(id: number, status: string): Promise<boolean>;
+}
+//# sourceMappingURL=QuoteRepository.d.ts.map
