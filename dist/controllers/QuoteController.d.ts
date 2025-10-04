@@ -11,5 +11,6 @@ export declare class QuoteController {
     searchQuotes(req: Request, res: Response): Promise<void>;
     duplicateQuote(req: Request, res: Response): Promise<void>;
     updateQuoteStatus(req: Request, res: Response): Promise<void>;
+    rejectQuote(req: Request, res: Response): Promise<void>;
 }
 //# sourceMappingURL=QuoteController.d.ts.map

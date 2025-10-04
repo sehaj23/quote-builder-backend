@@ -8,5 +8,6 @@ export declare class AuthController {
     static getUserInfo(req: Request, res: Response): Promise<Response>;
     static forgotPassword(req: Request, res: Response): Promise<Response>;
     static signupWithCompany(req: Request, res: Response): Promise<Response>;
+    static validateSession(req: Request, res: Response): Promise<Response>;
 }
 //# sourceMappingURL=AuthController.d.ts.map

@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { UserService } from '../services/UserService.js';
 import { CompanyService } from '../services/CompanyService.js';
 import { CompanyRepository } from '../repositories/CompanyRepository.js';
+import { QuoteRepository } from '@/repositories/QuoteRepository.js';
 const cognitoClient = new CognitoIdentityProviderClient({
     region: process.env.AWS_REGION || 'ap-southeast-2',
     credentials: {
@@ -159,7 +160,7 @@ export class AuthController {
             const token = jwt.sign({
                 userId: user.id,
                 email: user.email,
-                cognitoId: user.cognitoId,
+                cognitoId: user.cognito_id,
             }, process.env.JWT_SECRET, { expiresIn: '24h' });
             return res.json({
                 success: true,
@@ -292,7 +293,8 @@ export class AuthController {
                 });
             }
             const companyRepository = new CompanyRepository();
-            const companyService = new CompanyService(companyRepository);
+            const quoteRepository = new QuoteRepository();
+            const companyService = new CompanyService(companyRepository, quoteRepository);
             let cognitoUser;
             let createdCompany;
             let user;
@@ -334,7 +336,7 @@ export class AuthController {
                 const token = jwt.sign({
                     userId: user.id,
                     email: user.email,
-                    cognitoId: user.cognitoId,
+                    cognitoId: user.cognito_id,
                 }, process.env.JWT_SECRET, { expiresIn: '24h' });
                 const authCommand = new AdminInitiateAuthCommand({
                     UserPoolId: userPoolId,
@@ -414,6 +416,54 @@ export class AuthController {
             return res.status(500).json({
                 success: false,
                 message: 'Failed to create user and company',
+                error: error.message
+            });
+        }
+    }
+    static async validateSession(req, res) {
+        try {
+            const user = req.user;
+            if (!user) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid session - no user data'
+                });
+            }
+            const currentUser = await UserService.findByEmail(user.email);
+            if (!currentUser) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid session - user not found'
+                });
+            }
+            if (currentUser.isApproved === false) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid session - user not approved'
+                });
+            }
+            await UserService.updateLastActivity(currentUser.id);
+            return res.json({
+                success: true,
+                message: 'Session is valid',
+                data: {
+                    user: {
+                        id: currentUser.id,
+                        email: currentUser.email,
+                        firstName: currentUser.firstName,
+                        lastName: currentUser.lastName,
+                        isApproved: currentUser.isApproved,
+                        isSuperUser: currentUser.isSuperUser,
+                        company_id: currentUser.company_id,
+                    }
+                }
+            });
+        }
+        catch (error) {
+            console.error('Validate session error:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to validate session',
                 error: error.message
             });
         }

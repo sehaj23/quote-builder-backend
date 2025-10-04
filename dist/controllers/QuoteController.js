@@ -6,8 +6,11 @@ export class QuoteController {
     async getQuotesByCompany(req, res) {
         try {
             const companyId = parseInt(req.params.companyId || '');
-            const limit = req.query.limit ? parseInt(req.query.limit) : undefined;
-            const offset = req.query.offset ? parseInt(req.query.offset) : undefined;
+            const page = req.query.page ? parseInt(req.query.page) : 1;
+            const pageSize = req.query.pageSize ? parseInt(req.query.pageSize) : 10;
+            const search = req.query.search || '';
+            const status = req.query.status || '';
+            const tier = req.query.tier || '';
             if (isNaN(companyId)) {
                 res.status(400).json({
                     success: false,
@@ -15,11 +18,33 @@ export class QuoteController {
                 });
                 return;
             }
-            const quotes = await this.quoteService.getQuotesByCompany(companyId, limit, offset);
+            if (page < 1 || pageSize < 1 || pageSize > 100) {
+                res.status(400).json({
+                    success: false,
+                    error: 'Invalid pagination parameters. Page must be >= 1, pageSize must be 1-100'
+                });
+                return;
+            }
+            const filters = {
+                search: search.trim(),
+                status: status.trim(),
+                tier: tier.trim()
+            };
+            const result = await this.quoteService.getQuotesByCompanyPaginated(companyId, page, pageSize, filters);
             res.json({
                 success: true,
-                data: quotes,
-                message: `Found ${quotes.length} quotes for company ${companyId}`
+                data: {
+                    quotes: result.quotes,
+                    pagination: {
+                        currentPage: page,
+                        pageSize: pageSize,
+                        totalItems: result.totalCount,
+                        totalPages: Math.ceil(result.totalCount / pageSize),
+                        hasNextPage: page < Math.ceil(result.totalCount / pageSize),
+                        hasPrevPage: page > 1
+                    }
+                },
+                message: `Found ${result.totalCount} quotes for company ${companyId}`
             });
         }
         catch (error) {
@@ -241,6 +266,38 @@ export class QuoteController {
             res.status(400).json({
                 success: false,
                 error: error instanceof Error ? error.message : 'Failed to update quote status'
+            });
+        }
+    }
+    async rejectQuote(req, res) {
+        try {
+            const quoteId = parseInt(req.params.id || '');
+            if (!quoteId || isNaN(quoteId)) {
+                res.status(400).json({
+                    success: false,
+                    error: 'Valid quote ID is required'
+                });
+                return;
+            }
+            const updated = await this.quoteService.updateQuoteStatus(quoteId, 'rejected');
+            if (!updated) {
+                res.status(404).json({
+                    success: false,
+                    error: 'Quote not found'
+                });
+                return;
+            }
+            res.json({
+                success: true,
+                data: { id: quoteId, status: 'rejected' },
+                message: 'Quote has been rejected'
+            });
+        }
+        catch (error) {
+            console.error('Error in QuoteController.rejectQuote:', error);
+            res.status(400).json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Failed to reject quote'
             });
         }
     }

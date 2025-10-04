@@ -9,6 +9,21 @@ export class ItemService {
         }
         return await this.itemRepository.findByCompanyId(companyId);
     }
+    async getItemsByCompanyPaginated(companyId, page, pageSize, filters) {
+        if (!companyId || companyId <= 0) {
+            throw new Error('Valid company ID is required');
+        }
+        if (page < 1 || pageSize < 1) {
+            throw new Error('Page and pageSize must be positive integers');
+        }
+        const offset = (page - 1) * pageSize;
+        const items = await this.itemRepository.findByCompanyIdPaginated(companyId, pageSize, offset, filters);
+        const totalCount = await this.itemRepository.countByCompanyId(companyId, filters);
+        return {
+            items,
+            totalCount
+        };
+    }
     async getItemById(id) {
         if (!id || id <= 0) {
             throw new Error('Valid item ID is required');

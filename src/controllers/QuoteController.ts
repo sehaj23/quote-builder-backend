@@ -312,7 +312,7 @@ export class QuoteController {
 
   async rejectQuote(req: Request, res: Response): Promise<void> {
     try {
-      const quoteId = parseInt(req.params.id);
+      const quoteId = parseInt(req.params.id || '');
 
       if (!quoteId || isNaN(quoteId)) {
         res.status(400).json({

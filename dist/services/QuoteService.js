@@ -49,6 +49,21 @@ export class QuoteService {
         }
         return await this.quoteRepository.findByCompanyId(companyId, limit, offset);
     }
+    async getQuotesByCompanyPaginated(companyId, page, pageSize, filters) {
+        if (!companyId || companyId <= 0) {
+            throw new Error('Valid company ID is required');
+        }
+        if (page < 1 || pageSize < 1) {
+            throw new Error('Page and pageSize must be positive integers');
+        }
+        const offset = (page - 1) * pageSize;
+        const quotes = await this.quoteRepository.findByCompanyIdPaginated(companyId, pageSize, offset, filters);
+        const totalCount = await this.quoteRepository.countByCompanyId(companyId, filters);
+        return {
+            quotes,
+            totalCount
+        };
+    }
     async getQuoteById(id) {
         if (!id || id <= 0) {
             throw new Error('Valid quote ID is required');

@@ -30,9 +30,9 @@ export const authenticateToken = async (req, res, next) => {
         req.user = {
             id: user.id,
             email: user.email,
-            cognitoId: user.cognitoId,
-            isApproved: user.isApproved,
-            isSuperUser: user.isSuperUser,
+            cognitoId: user.cognito_id,
+            isApproved: user.is_approved,
+            isSuperUser: user.is_admin,
             company_id: user.company_id
         };
         next();

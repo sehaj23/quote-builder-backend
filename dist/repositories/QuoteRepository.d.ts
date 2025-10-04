@@ -2,6 +2,16 @@ import { Quote, QuoteLine, QuoteWithLines, CreateQuoteRequest, UpdateQuoteReques
 export declare class QuoteRepository {
     private getDbConnection;
     findByCompanyId(companyId: number, limit?: number, offset?: number): Promise<Quote[]>;
+    findByCompanyIdPaginated(companyId: number, limit: number, offset: number, filters: {
+        search?: string;
+        status?: string;
+        tier?: string;
+    }): Promise<Quote[]>;
+    countByCompanyId(companyId: number, filters: {
+        search?: string;
+        status?: string;
+        tier?: string;
+    }): Promise<number>;
     findById(id: number): Promise<Quote | null>;
     findByIdWithLines(id: number): Promise<QuoteWithLines | null>;
     getQuoteLines(quoteId: number): Promise<QuoteLine[]>;

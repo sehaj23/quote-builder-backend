@@ -15,6 +15,7 @@ individualQuoteRouter.post('/', authenticateToken, quoteController.createQuote.b
 individualQuoteRouter.put('/:id', authenticateToken, quoteController.updateQuote.bind(quoteController));
 individualQuoteRouter.delete('/:id', authenticateToken, quoteController.deleteQuote.bind(quoteController));
 individualQuoteRouter.post('/:id/duplicate', authenticateToken, quoteController.duplicateQuote.bind(quoteController));
+individualQuoteRouter.put('/:id/reject', authenticateToken, quoteController.rejectQuote.bind(quoteController));
 individualQuoteRouter.patch('/:id/status', authenticateToken, quoteController.updateQuoteStatus.bind(quoteController));
 export default router;
 //# sourceMappingURL=quoteRoutes.js.map

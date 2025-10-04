@@ -4,6 +4,13 @@ export declare class ItemService {
     private itemRepository;
     constructor(itemRepository: ItemRepository);
     getItemsByCompany(companyId: number): Promise<Item[]>;
+    getItemsByCompanyPaginated(companyId: number, page: number, pageSize: number, filters: {
+        search?: string;
+        category?: string;
+    }): Promise<{
+        items: Item[];
+        totalCount: number;
+    }>;
     getItemById(id: number): Promise<Item | null>;
     createItem(itemData: CreateItemRequest): Promise<{
         id: number;

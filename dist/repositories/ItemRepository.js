@@ -14,6 +14,53 @@ export class ItemRepository {
             throw new Error('Failed to fetch items from database');
         }
     }
+    async findByCompanyIdPaginated(companyId, limit, offset, filters) {
+        try {
+            const connection = this.getDbConnection();
+            let query = 'SELECT * FROM items WHERE company_id = ?';
+            const params = [companyId];
+            if (filters.search && filters.search.trim()) {
+                query += ' AND (name LIKE ? OR default_description LIKE ? OR category LIKE ?)';
+                const searchTerm = `%${filters.search.trim()}%`;
+                params.push(searchTerm, searchTerm, searchTerm);
+            }
+            if (filters.category && filters.category.trim()) {
+                query += ' AND category = ?';
+                params.push(filters.category.trim());
+            }
+            const limitInt = parseInt(String(limit)) || 10;
+            const offsetInt = parseInt(String(offset)) || 0;
+            query += ` ORDER BY category ASC, name ASC LIMIT ${limitInt} OFFSET ${offsetInt}`;
+            const [rows] = await connection.execute(query, params);
+            return rows;
+        }
+        catch (error) {
+            console.error('Error fetching paginated items for company:', error);
+            throw new Error('Failed to fetch paginated items from database');
+        }
+    }
+    async countByCompanyId(companyId, filters) {
+        try {
+            const connection = this.getDbConnection();
+            let query = 'SELECT COUNT(*) as count FROM items WHERE company_id = ?';
+            const params = [companyId];
+            if (filters.search && filters.search.trim()) {
+                query += ' AND (name LIKE ? OR default_description LIKE ? OR category LIKE ?)';
+                const searchTerm = `%${filters.search.trim()}%`;
+                params.push(searchTerm, searchTerm, searchTerm);
+            }
+            if (filters.category && filters.category.trim()) {
+                query += ' AND category = ?';
+                params.push(filters.category.trim());
+            }
+            const [rows] = await connection.execute(query, params);
+            return rows[0]?.count || 0;
+        }
+        catch (error) {
+            console.error('Error counting items for company:', error);
+            throw new Error('Failed to count items from database');
+        }
+    }
     async findById(id) {
         try {
             const connection = this.getDbConnection();

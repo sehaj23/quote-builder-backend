@@ -7,5 +7,6 @@ router.post('/signup-with-company', AuthController.validateSignupWithCompany, Au
 router.post('/login', AuthController.validateLogin, AuthController.login);
 router.post('/forgot-password', AuthController.forgotPassword);
 router.get('/user/:email', authenticateToken, AuthController.getUserInfo);
+router.get('/validate-session', authenticateToken, AuthController.validateSession);
 export default router;
 //# sourceMappingURL=authRoutes.js.map

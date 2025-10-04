@@ -6,6 +6,10 @@ export class ItemController {
     async getItemsByCompany(req, res) {
         try {
             const companyId = parseInt(req.params['companyId'] || '');
+            const page = req.query.page ? parseInt(req.query.page) : 1;
+            const pageSize = req.query.pageSize ? parseInt(req.query.pageSize) : 10;
+            const search = req.query.search || '';
+            const category = req.query.category || '';
             if (isNaN(companyId)) {
                 res.status(400).json({
                     success: false,
@@ -13,11 +17,32 @@ export class ItemController {
                 });
                 return;
             }
-            const items = await this.itemService.getItemsByCompany(companyId);
+            if (page < 1 || pageSize < 1 || pageSize > 100) {
+                res.status(400).json({
+                    success: false,
+                    error: 'Invalid pagination parameters. Page must be >= 1, pageSize must be 1-100'
+                });
+                return;
+            }
+            const filters = {
+                search: search.trim(),
+                category: category.trim()
+            };
+            const result = await this.itemService.getItemsByCompanyPaginated(companyId, page, pageSize, filters);
             res.json({
                 success: true,
-                data: items,
-                message: `Found ${items.length} items for company ${companyId}`
+                data: {
+                    items: result.items,
+                    pagination: {
+                        currentPage: page,
+                        pageSize: pageSize,
+                        totalItems: result.totalCount,
+                        totalPages: Math.ceil(result.totalCount / pageSize),
+                        hasNextPage: page < Math.ceil(result.totalCount / pageSize),
+                        hasPrevPage: page > 1
+                    }
+                },
+                message: `Found ${result.totalCount} items for company ${companyId}`
             });
         }
         catch (error) {

@@ -5,6 +5,14 @@ export declare class QuoteService {
     constructor(quoteRepository: QuoteRepository);
     private generateUniqueQuoteNumber;
     getQuotesByCompany(companyId: number, limit?: number, offset?: number): Promise<Quote[]>;
+    getQuotesByCompanyPaginated(companyId: number, page: number, pageSize: number, filters: {
+        search?: string;
+        status?: string;
+        tier?: string;
+    }): Promise<{
+        quotes: Quote[];
+        totalCount: number;
+    }>;
     getQuoteById(id: number): Promise<QuoteWithLines | null>;
     createQuote(quoteData: CreateQuoteRequest): Promise<{
         id: number;

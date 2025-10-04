@@ -10,5 +10,6 @@ export declare class CompanyController {
     deleteCompany(req: Request, res: Response): Promise<void>;
     getCompanyStats(_req: Request, res: Response): Promise<void>;
     incrementQuoteNumber(req: Request, res: Response): Promise<void>;
+    getCompanyAnalytics(req: Request, res: Response): Promise<void>;
 }
 //# sourceMappingURL=CompanyController.d.ts.map

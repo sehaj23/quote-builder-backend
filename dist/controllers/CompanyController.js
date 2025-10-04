@@ -210,5 +210,34 @@ export class CompanyController {
             res.status(statusCode).json(response);
         }
     }
+    async getCompanyAnalytics(req, res) {
+        try {
+            const companyId = parseInt(req.params['id'] || '');
+            if (isNaN(companyId)) {
+                const response = {
+                    success: false,
+                    error: 'Invalid company ID format'
+                };
+                res.status(400).json(response);
+                return;
+            }
+            const analytics = await this.companyService.getCompanyAnalytics(companyId);
+            const response = {
+                success: true,
+                data: analytics,
+                message: 'Analytics retrieved successfully'
+            };
+            res.status(200).json(response);
+        }
+        catch (error) {
+            console.error(`Controller error - getCompanyAnalytics(${req.params['id']}):`, error);
+            const statusCode = error instanceof Error && error.message === 'Company not found' ? 404 : 500;
+            const response = {
+                success: false,
+                error: error instanceof Error ? error.message : 'Failed to retrieve analytics'
+            };
+            res.status(statusCode).json(response);
+        }
+    }
 }
 //# sourceMappingURL=CompanyController.js.map

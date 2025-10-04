@@ -2,6 +2,14 @@ import { Item, CreateItemRequest, UpdateItemRequest } from '@/types/index.js';
 export declare class ItemRepository {
     private getDbConnection;
     findByCompanyId(companyId: number): Promise<Item[]>;
+    findByCompanyIdPaginated(companyId: number, limit: number, offset: number, filters: {
+        search?: string;
+        category?: string;
+    }): Promise<Item[]>;
+    countByCompanyId(companyId: number, filters: {
+        search?: string;
+        category?: string;
+    }): Promise<number>;
     findById(id: number): Promise<Item | null>;
     create(itemData: CreateItemRequest): Promise<number>;
     update(id: number, itemData: UpdateItemRequest): Promise<boolean>;

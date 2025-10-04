@@ -55,6 +55,7 @@ const createTables = async () => {
         default_tax DECIMAL(5,2) DEFAULT 0,
         quote_prefix VARCHAR(50) DEFAULT 'QTE',
         next_quote_number INT DEFAULT 100,
+        currency VARCHAR(10) DEFAULT 'INR',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         INDEX idx_company_name (name),
@@ -99,6 +100,24 @@ const createTables = async () => {
             }
             else {
                 console.log('✅ next_quote_number column already exists');
+            }
+            const [currencyColumns] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'companies' 
+          AND COLUMN_NAME = 'currency'
+      `);
+            if (currencyColumns.length === 0) {
+                console.log('➕ Adding currency column to companies table...');
+                await connection.execute(`
+          ALTER TABLE companies 
+          ADD COLUMN currency VARCHAR(10) DEFAULT 'INR' AFTER next_quote_number
+        `);
+                console.log('✅ Added currency column with default INR');
+            }
+            else {
+                console.log('✅ currency column already exists');
             }
         }
         catch (migrationError) {

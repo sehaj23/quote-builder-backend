@@ -24,6 +24,61 @@ export class QuoteRepository {
             throw new Error('Failed to fetch quotes from database');
         }
     }
+    async findByCompanyIdPaginated(companyId, limit, offset, filters) {
+        try {
+            const connection = this.getDbConnection();
+            let query = 'SELECT * FROM quotes WHERE company_id = ?';
+            const params = [companyId];
+            if (filters.search && filters.search.trim()) {
+                query += ' AND (quote_number LIKE ? OR customer_name LIKE ? OR project_name LIKE ? OR customer_email LIKE ?)';
+                const searchTerm = `%${filters.search.trim()}%`;
+                params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+            }
+            if (filters.status && filters.status.trim()) {
+                query += ' AND status = ?';
+                params.push(filters.status.trim());
+            }
+            if (filters.tier && filters.tier.trim()) {
+                query += ' AND tier = ?';
+                params.push(filters.tier.trim());
+            }
+            const limitInt = parseInt(String(limit)) || 10;
+            const offsetInt = parseInt(String(offset)) || 0;
+            query += ` ORDER BY created_at DESC LIMIT ${limitInt} OFFSET ${offsetInt}`;
+            const [rows] = await connection.execute(query, params);
+            return rows;
+        }
+        catch (error) {
+            console.error('Error fetching paginated quotes for company:', error);
+            throw new Error('Failed to fetch paginated quotes from database');
+        }
+    }
+    async countByCompanyId(companyId, filters) {
+        try {
+            const connection = this.getDbConnection();
+            let query = 'SELECT COUNT(*) as count FROM quotes WHERE company_id = ?';
+            const params = [companyId];
+            if (filters.search && filters.search.trim()) {
+                query += ' AND (quote_number LIKE ? OR customer_name LIKE ? OR project_name LIKE ? OR customer_email LIKE ?)';
+                const searchTerm = `%${filters.search.trim()}%`;
+                params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+            }
+            if (filters.status && filters.status.trim()) {
+                query += ' AND status = ?';
+                params.push(filters.status.trim());
+            }
+            if (filters.tier && filters.tier.trim()) {
+                query += ' AND tier = ?';
+                params.push(filters.tier.trim());
+            }
+            const [rows] = await connection.execute(query, params);
+            return rows[0]?.count || 0;
+        }
+        catch (error) {
+            console.error('Error counting quotes for company:', error);
+            throw new Error('Failed to count quotes from database');
+        }
+    }
     async findById(id) {
         try {
             const connection = this.getDbConnection();

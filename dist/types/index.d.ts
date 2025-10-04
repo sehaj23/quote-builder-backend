@@ -10,6 +10,7 @@ export interface Company {
     default_tax?: number;
     quote_prefix?: string;
     next_quote_number?: number;
+    currency?: string;
     created_at?: Date;
     updated_at?: Date;
 }
@@ -74,6 +75,7 @@ export interface CreateCompanyRequest {
     default_tax?: number;
     quote_prefix?: string;
     next_quote_number?: number;
+    currency?: string;
 }
 export interface UpdateCompanyRequest extends Partial<CreateCompanyRequest> {
 }
@@ -162,8 +164,9 @@ export interface User {
     isApproved?: boolean;
     isSuperUser?: boolean;
     is_super_user?: boolean;
+    is_admin?: boolean;
     is_approved?: boolean;
-    cognitoId?: string;
+    cognito_id?: string;
     company_id?: number;
     created_at?: Date;
     updated_at?: Date;

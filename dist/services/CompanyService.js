@@ -1,7 +1,9 @@
 export class CompanyService {
     companyRepository;
-    constructor(companyRepository) {
+    quoteRepository;
+    constructor(companyRepository, quoteRepository) {
         this.companyRepository = companyRepository;
+        this.quoteRepository = quoteRepository;
     }
     async getAllCompanies() {
         try {
@@ -59,6 +61,12 @@ export class CompanyService {
             }
             if (companyData.logo_path?.trim()) {
                 sanitizedData.logo_path = companyData.logo_path.trim();
+            }
+            if (companyData.currency?.trim()) {
+                sanitizedData.currency = companyData.currency.trim().toUpperCase();
+            }
+            else {
+                sanitizedData.currency = 'INR';
             }
             const companyId = await this.companyRepository.create(sanitizedData);
             const createdCompany = await this.companyRepository.findById(companyId);
@@ -120,6 +128,11 @@ export class CompanyService {
             if (companyData.logo_path !== undefined) {
                 if (companyData.logo_path?.trim()) {
                     sanitizedData.logo_path = companyData.logo_path.trim();
+                }
+            }
+            if (companyData.currency !== undefined) {
+                if (companyData.currency?.trim()) {
+                    sanitizedData.currency = companyData.currency.trim().toUpperCase();
                 }
             }
             const updated = await this.companyRepository.update(id, sanitizedData);
@@ -184,6 +197,63 @@ export class CompanyService {
         }
         catch (error) {
             console.error(`Service error - incrementQuoteNumber(${companyId}):`, error);
+            throw error;
+        }
+    }
+    async getCompanyAnalytics(companyId) {
+        try {
+            if (!companyId || companyId <= 0) {
+                throw new Error('Invalid company ID provided');
+            }
+            const company = await this.companyRepository.findById(companyId);
+            if (!company) {
+                throw new Error('Company not found');
+            }
+            const quotes = await this.quoteRepository.findByCompanyId(companyId);
+            const totalQuotes = quotes.length;
+            const quotesByStatus = {
+                draft: 0,
+                sent: 0,
+                approved: 0,
+                rejected: 0
+            };
+            let totalRevenue = 0;
+            const monthlyData = {};
+            quotes.forEach(quote => {
+                if (quote.status && quotesByStatus.hasOwnProperty(quote.status)) {
+                    quotesByStatus[quote.status]++;
+                }
+                if (quote.status === 'approved') {
+                    totalRevenue += quote.total || 0;
+                }
+                if (quote.created_at) {
+                    const date = new Date(quote.created_at);
+                    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    monthlyData[monthKey] = (monthlyData[monthKey] || 0) + 1;
+                }
+            });
+            const averageQuoteValue = totalQuotes > 0 ? totalRevenue / totalQuotes : 0;
+            const monthlyQuotes = Object.entries(monthlyData)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .slice(-6)
+                .map(([month, count]) => ({
+                month: new Date(month + '-01').toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short'
+                }),
+                count
+            }));
+            return {
+                totalQuotes,
+                quotesByStatus,
+                totalRevenue: Math.round(totalRevenue * 100) / 100,
+                averageQuoteValue: Math.round(averageQuoteValue * 100) / 100,
+                monthlyQuotes,
+                currency: company.currency || 'INR'
+            };
+        }
+        catch (error) {
+            console.error(`Service error - getCompanyAnalytics(${companyId}):`, error);
             throw error;
         }
     }

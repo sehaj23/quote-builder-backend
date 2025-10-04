@@ -1,8 +1,10 @@
 import { CompanyRepository } from '@/repositories/CompanyRepository.js';
+import { QuoteRepository } from '@/repositories/QuoteRepository.js';
 import { Company, CreateCompanyRequest, UpdateCompanyRequest } from '@/types/index.js';
 export declare class CompanyService {
     private companyRepository;
-    constructor(companyRepository: CompanyRepository);
+    private quoteRepository;
+    constructor(companyRepository: CompanyRepository, quoteRepository: QuoteRepository);
     getAllCompanies(): Promise<Company[]>;
     getCompanyById(id: number): Promise<Company>;
     createCompany(companyData: CreateCompanyRequest): Promise<{
@@ -15,6 +17,7 @@ export declare class CompanyService {
         totalCompanies: number;
     }>;
     incrementQuoteNumber(companyId: number): Promise<number>;
+    getCompanyAnalytics(companyId: number): Promise<any>;
     private isValidEmail;
 }
 //# sourceMappingURL=CompanyService.d.ts.map
