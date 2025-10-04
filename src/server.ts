@@ -4,24 +4,31 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 
-import { initDatabase, testConnection } from '@/config/database.js';
-import { errorHandler, notFoundHandler } from '@/middleware/errorHandler.js';
-import { ApiResponse } from '@/types/index.js';
+import { initDatabase, testConnection } from './config/database.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { ApiResponse } from './types/index.js';
 
 // Route imports
-import companyRoutes from '@/routes/companyRoutes.js';
-import itemRoutes, { individualItemRouter, categoryRouter } from '@/routes/itemRoutes.js';
-import quoteRoutes, { individualQuoteRouter } from '@/routes/quoteRoutes.js';
-import userRoutes from '@/routes/userRoutes.js';
-import attachmentRoutes, { individualAttachmentRouter } from '@/routes/attachmentRoutes.js';
-import activityRoutes from '@/routes/activityRoutes.js';
-import authRoutes from '@/routes/authRoutes.js';
+import companyRoutes from './routes/companyRoutes.js';
+import itemRoutes, { individualItemRouter, categoryRouter } from './routes/itemRoutes.js';
+import quoteRoutes, { individualQuoteRouter } from './routes/quoteRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import attachmentRoutes, { individualAttachmentRouter } from './routes/attachmentRoutes.js';
+import activityRoutes from './routes/activityRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Log environment info for debugging
+console.log('🔧 Environment Variables Check:');
+console.log('PORT:', PORT);
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('DB_HOST:', process.env.DB_HOST ? 'SET' : 'MISSING');
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'SET' : 'MISSING');
 
 // Security middleware
 app.use(helmet({
