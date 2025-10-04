@@ -1,4 +1,4 @@
-export const errorHandler = (error, req, res, next) => {
+export const errorHandler = (error, req, res, _next) => {
     console.error('Global error handler:', {
         message: error.message,
         stack: error.stack,
@@ -8,13 +8,13 @@ export const errorHandler = (error, req, res, next) => {
     });
     const response = {
         success: false,
-        error: process.env.NODE_ENV === 'development'
+        error: process.env['NODE_ENV'] === 'development'
             ? error.message
             : 'An internal server error occurred'
     };
     res.status(500).json(response);
 };
-export const notFoundHandler = (req, res, next) => {
+export const notFoundHandler = (req, res, _next) => {
     const response = {
         success: false,
         error: `Route ${req.method} ${req.url} not found`

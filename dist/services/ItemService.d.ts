@@ -1,7 +1,8 @@
 import { Item, CreateItemRequest, UpdateItemRequest } from '@/types/index.js';
+import { ItemRepository } from '@/repositories/ItemRepository.js';
 export declare class ItemService {
     private itemRepository;
-    constructor();
+    constructor(itemRepository: ItemRepository);
     getItemsByCompany(companyId: number): Promise<Item[]>;
     getItemById(id: number): Promise<Item | null>;
     createItem(itemData: CreateItemRequest): Promise<{

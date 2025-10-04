@@ -10,6 +10,7 @@ export declare class QuoteRepository {
     delete(id: number): Promise<boolean>;
     search(companyId: number, query: string): Promise<Quote[]>;
     duplicate(id: number, newQuoteNumber: string, newTier?: string): Promise<number>;
+    findByCompanyAndQuoteNumber(companyId: number, quoteNumber: string): Promise<Quote | null>;
     updateStatus(id: number, status: string): Promise<boolean>;
 }
 //# sourceMappingURL=QuoteRepository.d.ts.map

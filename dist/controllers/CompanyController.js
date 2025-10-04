@@ -1,10 +1,9 @@
-import { CompanyService } from '@/services/CompanyService.js';
 export class CompanyController {
     companyService;
-    constructor() {
-        this.companyService = new CompanyService();
+    constructor(companyService) {
+        this.companyService = companyService;
     }
-    getAllCompanies = async (req, res) => {
+    async getAllCompanies(_req, res) {
         try {
             const companies = await this.companyService.getAllCompanies();
             const response = {
@@ -22,10 +21,10 @@ export class CompanyController {
             };
             res.status(500).json(response);
         }
-    };
-    getCompanyById = async (req, res) => {
+    }
+    async getCompanyById(req, res) {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params['id'] || '');
             if (isNaN(id)) {
                 const response = {
                     success: false,
@@ -43,7 +42,7 @@ export class CompanyController {
             res.status(200).json(response);
         }
         catch (error) {
-            console.error(`Controller error - getCompanyById(${req.params.id}):`, error);
+            console.error(`Controller error - getCompanyById(${req.params['id']}):`, error);
             const statusCode = error instanceof Error && error.message === 'Company not found' ? 404 : 500;
             const response = {
                 success: false,
@@ -51,8 +50,8 @@ export class CompanyController {
             };
             res.status(statusCode).json(response);
         }
-    };
-    createCompany = async (req, res) => {
+    }
+    async createCompany(req, res) {
         try {
             const companyData = req.body;
             if (!companyData || typeof companyData !== 'object') {
@@ -86,10 +85,10 @@ export class CompanyController {
             };
             res.status(statusCode).json(response);
         }
-    };
-    updateCompany = async (req, res) => {
+    }
+    async updateCompany(req, res) {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params['id'] || '');
             if (isNaN(id)) {
                 const response = {
                     success: false,
@@ -116,7 +115,7 @@ export class CompanyController {
             res.status(200).json(response);
         }
         catch (error) {
-            console.error(`Controller error - updateCompany(${req.params.id}):`, error);
+            console.error(`Controller error - updateCompany(${req.params['id']}):`, error);
             let statusCode = 500;
             if (error instanceof Error) {
                 if (error.message === 'Company not found') {
@@ -134,10 +133,10 @@ export class CompanyController {
             };
             res.status(statusCode).json(response);
         }
-    };
-    deleteCompany = async (req, res) => {
+    }
+    async deleteCompany(req, res) {
         try {
-            const id = parseInt(req.params.id);
+            const id = parseInt(req.params['id'] || '');
             if (isNaN(id)) {
                 const response = {
                     success: false,
@@ -154,7 +153,7 @@ export class CompanyController {
             res.status(200).json(response);
         }
         catch (error) {
-            console.error(`Controller error - deleteCompany(${req.params.id}):`, error);
+            console.error(`Controller error - deleteCompany(${req.params['id']}):`, error);
             const statusCode = error instanceof Error && error.message === 'Company not found' ? 404 : 500;
             const response = {
                 success: false,
@@ -162,8 +161,8 @@ export class CompanyController {
             };
             res.status(statusCode).json(response);
         }
-    };
-    getCompanyStats = async (req, res) => {
+    }
+    async getCompanyStats(_req, res) {
         try {
             const stats = await this.companyService.getCompanyStats();
             const response = {
@@ -181,6 +180,35 @@ export class CompanyController {
             };
             res.status(500).json(response);
         }
-    };
+    }
+    async incrementQuoteNumber(req, res) {
+        try {
+            const companyId = parseInt(req.params['id'] || '');
+            if (isNaN(companyId)) {
+                const response = {
+                    success: false,
+                    error: 'Invalid company ID format'
+                };
+                res.status(400).json(response);
+                return;
+            }
+            const nextQuoteNumber = await this.companyService.incrementQuoteNumber(companyId);
+            const response = {
+                success: true,
+                data: { nextQuoteNumber },
+                message: 'Quote number incremented successfully'
+            };
+            res.status(200).json(response);
+        }
+        catch (error) {
+            console.error(`Controller error - incrementQuoteNumber(${req.params['id']}):`, error);
+            const statusCode = error instanceof Error && error.message === 'Company not found' ? 404 : 500;
+            const response = {
+                success: false,
+                error: error instanceof Error ? error.message : 'Failed to increment quote number'
+            };
+            res.status(statusCode).json(response);
+        }
+    }
 }
 //# sourceMappingURL=CompanyController.js.map

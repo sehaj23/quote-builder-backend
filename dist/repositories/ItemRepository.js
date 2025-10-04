@@ -149,7 +149,7 @@ export class ItemRepository {
         try {
             const connection = this.getDbConnection();
             const [rows] = await connection.execute('SELECT DISTINCT category FROM items WHERE company_id = ? AND category IS NOT NULL ORDER BY category ASC', [companyId]);
-            return rows.map(row => row.category);
+            return rows.map(row => row['category']);
         }
         catch (error) {
             console.error('Error fetching categories:', error);

@@ -3,18 +3,17 @@ import { QuoteService } from '@/services/QuoteService.js';
 import { CreateQuoteRequest, UpdateQuoteRequest, ApiResponse } from '@/types/index.js';
 
 export class QuoteController {
-  private quoteService: QuoteService;
-
-  constructor() {
-    this.quoteService = new QuoteService();
-  }
+  constructor(private quoteService: QuoteService) {}
 
   // GET /api/companies/:companyId/quotes
   async getQuotesByCompany(req: Request, res: Response): Promise<void> {
     try {
-      const companyId = parseInt(req.params.companyId);
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
-      const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
+      const companyId = parseInt(req.params.companyId || '');
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string) : 10;
+      const search = req.query.search as string || '';
+      const status = req.query.status as string || '';
+      const tier = req.query.tier as string || '';
       
       if (isNaN(companyId)) {
         res.status(400).json({
@@ -24,12 +23,36 @@ export class QuoteController {
         return;
       }
 
-      const quotes = await this.quoteService.getQuotesByCompany(companyId, limit, offset);
+      if (page < 1 || pageSize < 1 || pageSize > 100) {
+        res.status(400).json({
+          success: false,
+          error: 'Invalid pagination parameters. Page must be >= 1, pageSize must be 1-100'
+        } as ApiResponse);
+        return;
+      }
+
+      const filters = {
+        search: search.trim(),
+        status: status.trim(),
+        tier: tier.trim()
+      };
+
+      const result = await this.quoteService.getQuotesByCompanyPaginated(companyId, page, pageSize, filters);
       
       res.json({
         success: true,
-        data: quotes,
-        message: `Found ${quotes.length} quotes for company ${companyId}`
+        data: {
+          quotes: result.quotes,
+          pagination: {
+            currentPage: page,
+            pageSize: pageSize,
+            totalItems: result.totalCount,
+            totalPages: Math.ceil(result.totalCount / pageSize),
+            hasNextPage: page < Math.ceil(result.totalCount / pageSize),
+            hasPrevPage: page > 1
+          }
+        },
+        message: `Found ${result.totalCount} quotes for company ${companyId}`
       } as ApiResponse);
     } catch (error) {
       console.error('Error in QuoteController.getQuotesByCompany:', error);
@@ -43,7 +66,7 @@ export class QuoteController {
   // GET /api/quotes/:id
   async getQuoteById(req: Request, res: Response): Promise<void> {
     try {
-      const quoteId = parseInt(req.params.id);
+      const quoteId = parseInt(req.params['id'] || '');
       
       if (isNaN(quoteId)) {
         res.status(400).json({
@@ -101,7 +124,7 @@ export class QuoteController {
   // PUT /api/quotes/:id
   async updateQuote(req: Request, res: Response): Promise<void> {
     try {
-      const quoteId = parseInt(req.params.id);
+      const quoteId = parseInt(req.params['id'] || '');
       
       if (isNaN(quoteId)) {
         res.status(400).json({
@@ -139,7 +162,7 @@ export class QuoteController {
   // DELETE /api/quotes/:id
   async deleteQuote(req: Request, res: Response): Promise<void> {
     try {
-      const quoteId = parseInt(req.params.id);
+      const quoteId = parseInt(req.params['id'] || '');
       
       if (isNaN(quoteId)) {
         res.status(400).json({
@@ -176,8 +199,8 @@ export class QuoteController {
   // GET /api/companies/:companyId/quotes/search?query=...
   async searchQuotes(req: Request, res: Response): Promise<void> {
     try {
-      const companyId = parseInt(req.params.companyId);
-      const query = req.query.query as string;
+      const companyId = parseInt(req.params['companyId'] || '');
+      const query = req.query['query'] as string;
       
       if (isNaN(companyId)) {
         res.status(400).json({
@@ -214,7 +237,7 @@ export class QuoteController {
   // POST /api/quotes/:id/duplicate
   async duplicateQuote(req: Request, res: Response): Promise<void> {
     try {
-      const quoteId = parseInt(req.params.id);
+      const quoteId = parseInt(req.params['id'] || '');
       const { newTier } = req.body;
       
       if (isNaN(quoteId)) {
@@ -244,7 +267,7 @@ export class QuoteController {
   // PATCH /api/quotes/:id/status
   async updateQuoteStatus(req: Request, res: Response): Promise<void> {
     try {
-      const quoteId = parseInt(req.params.id);
+      const quoteId = parseInt(req.params['id'] || '');
       const { status } = req.body;
       
       if (isNaN(quoteId)) {
@@ -283,6 +306,42 @@ export class QuoteController {
       res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to update quote status'
+      } as ApiResponse);
+    }
+  }
+
+  async rejectQuote(req: Request, res: Response): Promise<void> {
+    try {
+      const quoteId = parseInt(req.params.id);
+
+      if (!quoteId || isNaN(quoteId)) {
+        res.status(400).json({
+          success: false,
+          error: 'Valid quote ID is required'
+        } as ApiResponse);
+        return;
+      }
+
+      const updated = await this.quoteService.updateQuoteStatus(quoteId, 'rejected');
+      
+      if (!updated) {
+        res.status(404).json({
+          success: false,
+          error: 'Quote not found'
+        } as ApiResponse);
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: { id: quoteId, status: 'rejected' },
+        message: 'Quote has been rejected'
+      } as ApiResponse);
+    } catch (error) {
+      console.error('Error in QuoteController.rejectQuote:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to reject quote'
       } as ApiResponse);
     }
   }

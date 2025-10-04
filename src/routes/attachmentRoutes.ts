@@ -1,0 +1,34 @@
+import { Router } from 'express';
+import { AttachmentController } from '@/controllers/AttachmentController.js';
+import { AttachmentService } from '@/services/AttachmentService.js';
+import { ActivityService } from '@/services/ActivityService.js';
+import { AttachmentRepository } from '@/repositories/AttachmentRepository.js';
+import { ActivityRepository } from '@/repositories/ActivityRepository.js';
+import { authenticateToken } from '@/middleware/auth.js';
+
+const router = Router();
+
+// Dependency injection
+const attachmentRepository = new AttachmentRepository();
+const activityRepository = new ActivityRepository();
+const attachmentService = new AttachmentService(attachmentRepository);
+const activityService = new ActivityService(activityRepository);
+const attachmentController = new AttachmentController(attachmentService, activityService);
+
+// Routes for company attachments
+router.post('/:companyId/upload', 
+  authenticateToken,
+  attachmentController.getUploadMiddleware(),
+  (req: any, res: any) => attachmentController.uploadFile(req, res)
+);
+
+router.get('/:companyId/attachments', authenticateToken, attachmentController.getAttachments.bind(attachmentController));
+router.get('/:companyId/attachments/:attachmentId', authenticateToken, attachmentController.getAttachmentById.bind(attachmentController));
+router.delete('/:companyId/attachments/:attachmentId', authenticateToken, attachmentController.deleteAttachment.bind(attachmentController));
+
+// Individual attachment routes
+export const individualAttachmentRouter = Router();
+individualAttachmentRouter.get('/:attachmentId', authenticateToken, attachmentController.getAttachmentById.bind(attachmentController));
+individualAttachmentRouter.delete('/:attachmentId', authenticateToken, attachmentController.deleteAttachment.bind(attachmentController));
+
+export default router;

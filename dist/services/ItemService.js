@@ -1,8 +1,7 @@
-import { ItemRepository } from '@/repositories/ItemRepository.js';
 export class ItemService {
     itemRepository;
-    constructor() {
-        this.itemRepository = new ItemRepository();
+    constructor(itemRepository) {
+        this.itemRepository = itemRepository;
     }
     async getItemsByCompany(companyId) {
         if (!companyId || companyId <= 0) {
@@ -30,16 +29,23 @@ export class ItemService {
             throw new Error('Valid unit cost is required');
         }
         const sanitizedData = {
-            ...itemData,
+            company_id: itemData.company_id,
             name: itemData.name.trim(),
-            default_description: itemData.default_description?.trim() || null,
             unit: itemData.unit.trim(),
-            tags: itemData.tags?.trim() || null,
-            category: itemData.category?.trim() || null,
+            unit_cost: itemData.unit_cost,
             default_area: itemData.default_area || 1,
             economy_unit_cost: itemData.economy_unit_cost || itemData.unit_cost,
             luxury_unit_cost: itemData.luxury_unit_cost || itemData.unit_cost
         };
+        if (itemData.default_description?.trim()) {
+            sanitizedData.default_description = itemData.default_description.trim();
+        }
+        if (itemData.tags?.trim()) {
+            sanitizedData.tags = itemData.tags.trim();
+        }
+        if (itemData.category?.trim()) {
+            sanitizedData.category = itemData.category.trim();
+        }
         try {
             const newItemId = await this.itemRepository.create(sanitizedData);
             const newItem = await this.itemRepository.findById(newItemId);
@@ -78,7 +84,9 @@ export class ItemService {
             sanitizedData.name = itemData.name.trim();
         }
         if (itemData.default_description !== undefined) {
-            sanitizedData.default_description = itemData.default_description?.trim() || null;
+            if (itemData.default_description?.trim()) {
+                sanitizedData.default_description = itemData.default_description.trim();
+            }
         }
         if (itemData.unit !== undefined) {
             sanitizedData.unit = itemData.unit.trim();
@@ -96,10 +104,14 @@ export class ItemService {
             sanitizedData.luxury_unit_cost = itemData.luxury_unit_cost;
         }
         if (itemData.tags !== undefined) {
-            sanitizedData.tags = itemData.tags?.trim() || null;
+            if (itemData.tags?.trim()) {
+                sanitizedData.tags = itemData.tags.trim();
+            }
         }
         if (itemData.category !== undefined) {
-            sanitizedData.category = itemData.category?.trim() || null;
+            if (itemData.category?.trim()) {
+                sanitizedData.category = itemData.category.trim();
+            }
         }
         try {
             const updateSuccess = await this.itemRepository.update(id, sanitizedData);

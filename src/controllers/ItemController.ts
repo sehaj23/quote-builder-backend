@@ -3,16 +3,16 @@ import { ItemService } from '@/services/ItemService.js';
 import { CreateItemRequest, UpdateItemRequest, ApiResponse } from '@/types/index.js';
 
 export class ItemController {
-  private itemService: ItemService;
-
-  constructor() {
-    this.itemService = new ItemService();
-  }
+  constructor(private itemService: ItemService) {}
 
   // GET /api/companies/:companyId/items
   async getItemsByCompany(req: Request, res: Response): Promise<void> {
     try {
-      const companyId = parseInt(req.params['companyId']);
+      const companyId = parseInt(req.params['companyId'] || '');
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string) : 10;
+      const search = req.query.search as string || '';
+      const category = req.query.category as string || '';
       
       if (isNaN(companyId)) {
         res.status(400).json({
@@ -22,12 +22,35 @@ export class ItemController {
         return;
       }
 
-      const items = await this.itemService.getItemsByCompany(companyId);
+      if (page < 1 || pageSize < 1 || pageSize > 100) {
+        res.status(400).json({
+          success: false,
+          error: 'Invalid pagination parameters. Page must be >= 1, pageSize must be 1-100'
+        } as ApiResponse);
+        return;
+      }
+
+      const filters = {
+        search: search.trim(),
+        category: category.trim()
+      };
+
+      const result = await this.itemService.getItemsByCompanyPaginated(companyId, page, pageSize, filters);
       
       res.json({
         success: true,
-        data: items,
-        message: `Found ${items.length} items for company ${companyId}`
+        data: {
+          items: result.items,
+          pagination: {
+            currentPage: page,
+            pageSize: pageSize,
+            totalItems: result.totalCount,
+            totalPages: Math.ceil(result.totalCount / pageSize),
+            hasNextPage: page < Math.ceil(result.totalCount / pageSize),
+            hasPrevPage: page > 1
+          }
+        },
+        message: `Found ${result.totalCount} items for company ${companyId}`
       } as ApiResponse);
     } catch (error) {
       console.error('Error in ItemController.getItemsByCompany:', error);
@@ -41,7 +64,7 @@ export class ItemController {
   // GET /api/items/:id
   async getItemById(req: Request, res: Response): Promise<void> {
     try {
-      const itemId = parseInt(req.params.id);
+      const itemId = parseInt(req.params['id'] || '');
       
       if (isNaN(itemId)) {
         res.status(400).json({
@@ -78,7 +101,7 @@ export class ItemController {
   // POST /api/companies/:companyId/items
   async createItem(req: Request, res: Response): Promise<void> {
     try {
-      const companyId = parseInt(req.params.companyId);
+      const companyId = parseInt(req.params['companyId'] || '');
       
       if (isNaN(companyId)) {
         res.status(400).json({
@@ -112,7 +135,7 @@ export class ItemController {
   // PUT /api/items/:id
   async updateItem(req: Request, res: Response): Promise<void> {
     try {
-      const itemId = parseInt(req.params.id);
+      const itemId = parseInt(req.params['id'] || '');
       
       if (isNaN(itemId)) {
         res.status(400).json({
@@ -150,7 +173,7 @@ export class ItemController {
   // DELETE /api/items/:id
   async deleteItem(req: Request, res: Response): Promise<void> {
     try {
-      const itemId = parseInt(req.params.id);
+      const itemId = parseInt(req.params['id'] || '');
       
       if (isNaN(itemId)) {
         res.status(400).json({
@@ -187,8 +210,8 @@ export class ItemController {
   // GET /api/companies/:companyId/items/search?query=...
   async searchItems(req: Request, res: Response): Promise<void> {
     try {
-      const companyId = parseInt(req.params.companyId);
-      const query = req.query.query as string;
+      const companyId = parseInt(req.params['companyId'] || '');
+      const query = req.query['query'] as string;
       
       if (isNaN(companyId)) {
         res.status(400).json({
@@ -225,8 +248,8 @@ export class ItemController {
   // GET /api/companies/:companyId/items/category/:category
   async getItemsByCategory(req: Request, res: Response): Promise<void> {
     try {
-      const companyId = parseInt(req.params.companyId);
-      const category = req.params.category;
+      const companyId = parseInt(req.params['companyId'] || '');
+      const category = req.params['category'];
       
       if (isNaN(companyId)) {
         res.status(400).json({
@@ -236,7 +259,7 @@ export class ItemController {
         return;
       }
 
-      const items = await this.itemService.getItemsByCategory(companyId, category);
+      const items = await this.itemService.getItemsByCategory(companyId, category || '');
       
       res.json({
         success: true,
@@ -255,7 +278,7 @@ export class ItemController {
   // GET /api/companies/:companyId/categories
   async getCategories(req: Request, res: Response): Promise<void> {
     try {
-      const companyId = parseInt(req.params.companyId);
+      const companyId = parseInt(req.params['companyId'] || '');
       
       if (isNaN(companyId)) {
         res.status(400).json({

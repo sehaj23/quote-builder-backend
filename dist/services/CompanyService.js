@@ -1,8 +1,7 @@
-import { CompanyRepository } from '@/repositories/CompanyRepository.js';
 export class CompanyService {
     companyRepository;
-    constructor() {
-        this.companyRepository = new CompanyRepository();
+    constructor(companyRepository) {
+        this.companyRepository = companyRepository;
     }
     async getAllCompanies() {
         try {
@@ -44,13 +43,23 @@ export class CompanyService {
                 }
             }
             const sanitizedData = {
-                name: companyData.name.trim(),
-                address: companyData.address?.trim() || undefined,
-                email: companyData.email?.trim().toLowerCase() || undefined,
-                phone: companyData.phone?.trim() || undefined,
-                terms: companyData.terms?.trim() || undefined,
-                logo_path: companyData.logo_path?.trim() || undefined
+                name: companyData.name.trim()
             };
+            if (companyData.address?.trim()) {
+                sanitizedData.address = companyData.address.trim();
+            }
+            if (companyData.email?.trim()) {
+                sanitizedData.email = companyData.email.trim().toLowerCase();
+            }
+            if (companyData.phone?.trim()) {
+                sanitizedData.phone = companyData.phone.trim();
+            }
+            if (companyData.terms?.trim()) {
+                sanitizedData.terms = companyData.terms.trim();
+            }
+            if (companyData.logo_path?.trim()) {
+                sanitizedData.logo_path = companyData.logo_path.trim();
+            }
             const companyId = await this.companyRepository.create(sanitizedData);
             const createdCompany = await this.companyRepository.findById(companyId);
             if (!createdCompany) {
@@ -89,19 +98,29 @@ export class CompanyService {
                 sanitizedData.name = companyData.name.trim();
             }
             if (companyData.address !== undefined) {
-                sanitizedData.address = companyData.address?.trim() || undefined;
+                if (companyData.address?.trim()) {
+                    sanitizedData.address = companyData.address.trim();
+                }
             }
             if (companyData.email !== undefined) {
-                sanitizedData.email = companyData.email?.trim().toLowerCase() || undefined;
+                if (companyData.email?.trim()) {
+                    sanitizedData.email = companyData.email.trim().toLowerCase();
+                }
             }
             if (companyData.phone !== undefined) {
-                sanitizedData.phone = companyData.phone?.trim() || undefined;
+                if (companyData.phone?.trim()) {
+                    sanitizedData.phone = companyData.phone.trim();
+                }
             }
             if (companyData.terms !== undefined) {
-                sanitizedData.terms = companyData.terms?.trim() || undefined;
+                if (companyData.terms?.trim()) {
+                    sanitizedData.terms = companyData.terms.trim();
+                }
             }
             if (companyData.logo_path !== undefined) {
-                sanitizedData.logo_path = companyData.logo_path?.trim() || undefined;
+                if (companyData.logo_path?.trim()) {
+                    sanitizedData.logo_path = companyData.logo_path.trim();
+                }
             }
             const updated = await this.companyRepository.update(id, sanitizedData);
             if (!updated) {
@@ -144,6 +163,27 @@ export class CompanyService {
         }
         catch (error) {
             console.error('Service error - getCompanyStats:', error);
+            throw error;
+        }
+    }
+    async incrementQuoteNumber(companyId) {
+        try {
+            if (!companyId || companyId <= 0) {
+                throw new Error('Invalid company ID provided');
+            }
+            const existingCompany = await this.companyRepository.findById(companyId);
+            if (!existingCompany) {
+                throw new Error('Company not found');
+            }
+            const currentNumber = existingCompany.next_quote_number || 100;
+            const newNextNumber = currentNumber + 1;
+            await this.companyRepository.update(companyId, {
+                next_quote_number: newNextNumber
+            });
+            return newNextNumber;
+        }
+        catch (error) {
+            console.error(`Service error - incrementQuoteNumber(${companyId}):`, error);
             throw error;
         }
     }

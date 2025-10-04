@@ -1,8 +1,47 @@
-import { QuoteRepository } from '@/repositories/QuoteRepository.js';
 export class QuoteService {
     quoteRepository;
-    constructor() {
-        this.quoteRepository = new QuoteRepository();
+    constructor(quoteRepository) {
+        this.quoteRepository = quoteRepository;
+    }
+    async generateUniqueQuoteNumber(companyId) {
+        const companyRepository = (await import('@/repositories/CompanyRepository.js')).CompanyRepository;
+        const companyRepo = new companyRepository();
+        const company = await companyRepo.findById(companyId);
+        if (!company) {
+            throw new Error('Company not found for quote number generation');
+        }
+        const prefix = company.quote_prefix || 'QTE';
+        let nextNumber = company.next_quote_number || 100;
+        let newQuoteNumber = `${prefix}-${nextNumber}`;
+        let attempts = 0;
+        const maxAttempts = 100;
+        while (attempts < maxAttempts) {
+            try {
+                const existingQuote = await this.quoteRepository.findByCompanyAndQuoteNumber(companyId, newQuoteNumber);
+                if (!existingQuote) {
+                    try {
+                        await companyRepo.update(company.id, { next_quote_number: nextNumber + 1 });
+                        console.log(`Generated quote number: ${newQuoteNumber}, updated company next_quote_number to ${nextNumber + 1}`);
+                    }
+                    catch (incrementError) {
+                        console.warn('Failed to increment company quote number:', incrementError);
+                    }
+                    return newQuoteNumber;
+                }
+                nextNumber++;
+                newQuoteNumber = `${prefix}-${nextNumber}`;
+                attempts++;
+                console.log(`Quote number ${prefix}-${nextNumber - 1} exists, trying ${newQuoteNumber}`);
+            }
+            catch (error) {
+                console.error('Error checking quote number availability:', error);
+                return `${prefix}-${Date.now()}`;
+            }
+        }
+        if (attempts >= maxAttempts) {
+            return `${prefix}-${Date.now()}`;
+        }
+        return newQuoteNumber;
     }
     async getQuotesByCompany(companyId, limit, offset) {
         if (!companyId || companyId <= 0) {
@@ -20,19 +59,23 @@ export class QuoteService {
         if (!quoteData.company_id || quoteData.company_id <= 0) {
             throw new Error('Valid company ID is required');
         }
-        if (!quoteData.quote_number || quoteData.quote_number.trim().length === 0) {
-            throw new Error('Quote number is required');
+        let finalQuoteNumber = quoteData.quote_number;
+        if (!finalQuoteNumber || finalQuoteNumber.trim().length === 0) {
+            finalQuoteNumber = await this.generateUniqueQuoteNumber(quoteData.company_id);
+        }
+        else {
+            finalQuoteNumber = finalQuoteNumber.trim();
         }
         if (quoteData.lines && quoteData.lines.length > 0) {
             for (let i = 0; i < quoteData.lines.length; i++) {
                 const line = quoteData.lines[i];
-                if (line.quantity !== undefined && line.quantity < 0) {
+                if (line && line.quantity !== undefined && line.quantity < 0) {
                     throw new Error(`Line ${i + 1}: Quantity cannot be negative`);
                 }
-                if (line.unit_rate !== undefined && line.unit_rate < 0) {
+                if (line && line.unit_rate !== undefined && line.unit_rate < 0) {
                     throw new Error(`Line ${i + 1}: Unit rate cannot be negative`);
                 }
-                if (line.line_total !== undefined && line.line_total < 0) {
+                if (line && line.line_total !== undefined && line.line_total < 0) {
                     throw new Error(`Line ${i + 1}: Line total cannot be negative`);
                 }
             }
@@ -49,21 +92,39 @@ export class QuoteService {
         if (quoteData.total !== undefined && quoteData.total < 0) {
             throw new Error('Total cannot be negative');
         }
+        const calculateTotalsFromLines = (lines) => {
+            return lines.reduce((sum, line) => {
+                const lineTotal = parseFloat(line.line_total) || 0;
+                return sum + lineTotal;
+            }, 0);
+        };
+        const calculatedSubtotal = quoteData.subtotal || calculateTotalsFromLines(quoteData.lines || []);
+        const calculatedTax = quoteData.tax || 0;
+        const calculatedDiscount = quoteData.discount || 0;
+        const calculatedTotal = calculatedSubtotal + calculatedTax - calculatedDiscount;
         const sanitizedData = {
-            ...quoteData,
-            quote_number: quoteData.quote_number.trim(),
-            project_name: quoteData.project_name?.trim() || null,
-            customer_name: quoteData.customer_name?.trim() || null,
-            customer_email: quoteData.customer_email?.trim() || null,
-            customer_mobile: quoteData.customer_mobile?.trim() || null,
+            company_id: quoteData.company_id,
+            quote_number: finalQuoteNumber,
             tier: quoteData.tier || 'economy',
             status: quoteData.status || 'draft',
-            subtotal: quoteData.subtotal || 0,
-            tax: quoteData.tax || 0,
-            discount: quoteData.discount || 0,
-            total: quoteData.total || 0,
+            subtotal: calculatedSubtotal,
+            tax: calculatedTax,
+            discount: calculatedDiscount,
+            total: calculatedTotal,
             lines: quoteData.lines || []
         };
+        if (quoteData.project_name?.trim()) {
+            sanitizedData.project_name = quoteData.project_name.trim();
+        }
+        if (quoteData.customer_name?.trim()) {
+            sanitizedData.customer_name = quoteData.customer_name.trim();
+        }
+        if (quoteData.customer_email?.trim()) {
+            sanitizedData.customer_email = quoteData.customer_email.trim();
+        }
+        if (quoteData.customer_mobile?.trim()) {
+            sanitizedData.customer_mobile = quoteData.customer_mobile.trim();
+        }
         if (sanitizedData.customer_email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(sanitizedData.customer_email)) {
@@ -100,13 +161,13 @@ export class QuoteService {
         if (quoteData.lines && quoteData.lines.length > 0) {
             for (let i = 0; i < quoteData.lines.length; i++) {
                 const line = quoteData.lines[i];
-                if (line.quantity !== undefined && line.quantity < 0) {
+                if (line && line.quantity !== undefined && line.quantity < 0) {
                     throw new Error(`Line ${i + 1}: Quantity cannot be negative`);
                 }
-                if (line.unit_rate !== undefined && line.unit_rate < 0) {
+                if (line && line.unit_rate !== undefined && line.unit_rate < 0) {
                     throw new Error(`Line ${i + 1}: Unit rate cannot be negative`);
                 }
-                if (line.line_total !== undefined && line.line_total < 0) {
+                if (line && line.line_total !== undefined && line.line_total < 0) {
                     throw new Error(`Line ${i + 1}: Line total cannot be negative`);
                 }
             }
@@ -123,21 +184,53 @@ export class QuoteService {
         if (quoteData.total !== undefined && quoteData.total < 0) {
             throw new Error('Total cannot be negative');
         }
+        let calculatedSubtotal, calculatedTax, calculatedDiscount, calculatedTotal;
+        if (quoteData.lines !== undefined) {
+            const calculateTotalsFromLines = (lines) => {
+                return lines.reduce((sum, line) => {
+                    const lineTotal = parseFloat(line.line_total) || 0;
+                    return sum + lineTotal;
+                }, 0);
+            };
+            calculatedSubtotal = quoteData.subtotal ?? calculateTotalsFromLines(quoteData.lines);
+            calculatedTax = quoteData.tax ?? 0;
+            calculatedDiscount = quoteData.discount ?? 0;
+            calculatedTotal = calculatedSubtotal + calculatedTax - calculatedDiscount;
+        }
+        else {
+            if (quoteData.subtotal !== undefined || quoteData.tax !== undefined || quoteData.discount !== undefined) {
+                const currentQuote = await this.quoteRepository.findById(id);
+                if (currentQuote) {
+                    const subtotal = quoteData.subtotal !== undefined ? quoteData.subtotal : parseFloat(currentQuote.subtotal?.toString() || '0');
+                    const tax = quoteData.tax !== undefined ? quoteData.tax : parseFloat(currentQuote.tax?.toString() || '0');
+                    const discount = quoteData.discount !== undefined ? quoteData.discount : parseFloat(currentQuote.discount?.toString() || '0');
+                    calculatedTotal = subtotal + tax - discount;
+                }
+            }
+        }
         const sanitizedData = {};
         if (quoteData.quote_number !== undefined) {
             sanitizedData.quote_number = quoteData.quote_number.trim();
         }
         if (quoteData.project_name !== undefined) {
-            sanitizedData.project_name = quoteData.project_name?.trim() || null;
+            if (quoteData.project_name?.trim()) {
+                sanitizedData.project_name = quoteData.project_name.trim();
+            }
         }
         if (quoteData.customer_name !== undefined) {
-            sanitizedData.customer_name = quoteData.customer_name?.trim() || null;
+            if (quoteData.customer_name?.trim()) {
+                sanitizedData.customer_name = quoteData.customer_name.trim();
+            }
         }
         if (quoteData.customer_email !== undefined) {
-            sanitizedData.customer_email = quoteData.customer_email?.trim() || null;
+            if (quoteData.customer_email?.trim()) {
+                sanitizedData.customer_email = quoteData.customer_email.trim();
+            }
         }
         if (quoteData.customer_mobile !== undefined) {
-            sanitizedData.customer_mobile = quoteData.customer_mobile?.trim() || null;
+            if (quoteData.customer_mobile?.trim()) {
+                sanitizedData.customer_mobile = quoteData.customer_mobile.trim();
+            }
         }
         if (quoteData.tier !== undefined) {
             sanitizedData.tier = quoteData.tier;
@@ -145,17 +238,29 @@ export class QuoteService {
         if (quoteData.status !== undefined) {
             sanitizedData.status = quoteData.status;
         }
-        if (quoteData.subtotal !== undefined) {
-            sanitizedData.subtotal = quoteData.subtotal;
+        if (quoteData.subtotal !== undefined || calculatedSubtotal !== undefined) {
+            const finalSubtotal = calculatedSubtotal ?? quoteData.subtotal;
+            if (finalSubtotal !== undefined) {
+                sanitizedData.subtotal = finalSubtotal;
+            }
         }
-        if (quoteData.tax !== undefined) {
-            sanitizedData.tax = quoteData.tax;
+        if (quoteData.tax !== undefined || calculatedTax !== undefined) {
+            const finalTax = calculatedTax ?? quoteData.tax;
+            if (finalTax !== undefined) {
+                sanitizedData.tax = finalTax;
+            }
         }
-        if (quoteData.discount !== undefined) {
-            sanitizedData.discount = quoteData.discount;
+        if (quoteData.discount !== undefined || calculatedDiscount !== undefined) {
+            const finalDiscount = calculatedDiscount ?? quoteData.discount;
+            if (finalDiscount !== undefined) {
+                sanitizedData.discount = finalDiscount;
+            }
         }
-        if (quoteData.total !== undefined) {
-            sanitizedData.total = quoteData.total;
+        if (quoteData.total !== undefined || calculatedTotal !== undefined) {
+            const finalTotal = calculatedTotal ?? quoteData.total;
+            if (finalTotal !== undefined) {
+                sanitizedData.total = finalTotal;
+            }
         }
         if (quoteData.lines !== undefined) {
             sanitizedData.lines = quoteData.lines;
@@ -211,10 +316,45 @@ export class QuoteService {
         if (!originalQuote) {
             throw new Error('Original quote not found');
         }
-        const timestamp = Date.now();
-        const newQuoteNumber = `${originalQuote.quote_number}-COPY-${timestamp}`;
+        const companyRepository = (await import('@/repositories/CompanyRepository.js')).CompanyRepository;
+        const companyRepo = new companyRepository();
+        const company = await companyRepo.findById(originalQuote.company_id);
+        if (!company) {
+            throw new Error('Company not found for quote');
+        }
+        const prefix = company.quote_prefix || 'QTE';
+        let nextNumber = company.next_quote_number || 100;
+        let newQuoteNumber = `${prefix}-${nextNumber}`;
+        let attempts = 0;
+        const maxAttempts = 100;
+        while (attempts < maxAttempts) {
+            try {
+                const existingQuote = await this.quoteRepository.findByCompanyAndQuoteNumber(originalQuote.company_id, newQuoteNumber);
+                if (!existingQuote) {
+                    break;
+                }
+                nextNumber++;
+                newQuoteNumber = `${prefix}-${nextNumber}`;
+                attempts++;
+                console.log(`Quote number ${prefix}-${nextNumber - 1} exists, trying ${newQuoteNumber}`);
+            }
+            catch (error) {
+                console.error('Error checking quote number availability:', error);
+                break;
+            }
+        }
+        if (attempts >= maxAttempts) {
+            throw new Error('Unable to generate unique quote number after maximum attempts');
+        }
         try {
             const newQuoteId = await this.quoteRepository.duplicate(id, newQuoteNumber, newTier);
+            try {
+                await companyRepo.update(company.id, { next_quote_number: nextNumber + 1 });
+                console.log(`Updated company next_quote_number to ${nextNumber + 1}`);
+            }
+            catch (incrementError) {
+                console.warn('Failed to increment company quote number:', incrementError);
+            }
             const newQuote = await this.quoteRepository.findByIdWithLines(newQuoteId);
             if (!newQuote) {
                 throw new Error('Failed to retrieve duplicated quote');

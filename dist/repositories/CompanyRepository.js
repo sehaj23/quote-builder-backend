@@ -45,14 +45,17 @@ export class CompanyRepository {
     async create(companyData) {
         try {
             const connection = this.getDbConnection();
-            const [result] = await connection.execute(`INSERT INTO companies (name, address, email, phone, terms, logo_path) 
-         VALUES (?, ?, ?, ?, ?, ?)`, [
+            const [result] = await connection.execute(`INSERT INTO companies (name, address, email, phone, terms, logo_path, default_tax, quote_prefix, next_quote_number) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
                 companyData.name,
                 companyData.address || null,
                 companyData.email || null,
                 companyData.phone || null,
                 companyData.terms || null,
-                companyData.logo_path || null
+                companyData.logo_path || null,
+                companyData.default_tax || 0,
+                companyData.quote_prefix || 'QTE',
+                companyData.next_quote_number || 100
             ]);
             return result.insertId;
         }
@@ -68,7 +71,7 @@ export class CompanyRepository {
         try {
             const connection = this.getDbConnection();
             const [result] = await connection.execute(`UPDATE companies 
-         SET name = ?, address = ?, email = ?, phone = ?, terms = ?, logo_path = ?
+         SET name = ?, address = ?, email = ?, phone = ?, terms = ?, logo_path = ?, default_tax = ?, quote_prefix = ?, next_quote_number = ?
          WHERE id = ?`, [
                 companyData.name,
                 companyData.address || null,
@@ -76,6 +79,9 @@ export class CompanyRepository {
                 companyData.phone || null,
                 companyData.terms || null,
                 companyData.logo_path || null,
+                companyData.default_tax ?? null,
+                companyData.quote_prefix ?? null,
+                companyData.next_quote_number ?? null,
                 id
             ]);
             return result.affectedRows > 0;

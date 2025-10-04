@@ -1,12 +1,8 @@
-import { Quote, QuoteLine, QuoteWithLines, CreateQuoteRequest, UpdateQuoteRequest } from '@/types/index.js';
+import { Quote, QuoteWithLines, CreateQuoteRequest, UpdateQuoteRequest } from '@/types/index.js';
 import { QuoteRepository } from '@/repositories/QuoteRepository.js';
 
 export class QuoteService {
-  private quoteRepository: QuoteRepository;
-
-  constructor() {
-    this.quoteRepository = new QuoteRepository();
-  }
+  constructor(private quoteRepository: QuoteRepository) {}
 
   private async generateUniqueQuoteNumber(companyId: number): Promise<string> {
     // Get company to use proper quote numbering
@@ -70,6 +66,35 @@ export class QuoteService {
     return await this.quoteRepository.findByCompanyId(companyId, limit, offset);
   }
 
+  async getQuotesByCompanyPaginated(
+    companyId: number, 
+    page: number, 
+    pageSize: number, 
+    filters: { search?: string; status?: string; tier?: string }
+  ): Promise<{ quotes: Quote[]; totalCount: number }> {
+    if (!companyId || companyId <= 0) {
+      throw new Error('Valid company ID is required');
+    }
+
+    if (page < 1 || pageSize < 1) {
+      throw new Error('Page and pageSize must be positive integers');
+    }
+
+    const offset = (page - 1) * pageSize;
+    const quotes = await this.quoteRepository.findByCompanyIdPaginated(
+      companyId, 
+      pageSize, 
+      offset, 
+      filters
+    );
+    const totalCount = await this.quoteRepository.countByCompanyId(companyId, filters);
+
+    return {
+      quotes,
+      totalCount
+    };
+  }
+
   async getQuoteById(id: number): Promise<QuoteWithLines | null> {
     if (!id || id <= 0) {
       throw new Error('Valid quote ID is required');
@@ -96,13 +121,13 @@ export class QuoteService {
     if (quoteData.lines && quoteData.lines.length > 0) {
       for (let i = 0; i < quoteData.lines.length; i++) {
         const line = quoteData.lines[i];
-        if (line.quantity !== undefined && line.quantity < 0) {
+        if (line && line.quantity !== undefined && line.quantity < 0) {
           throw new Error(`Line ${i + 1}: Quantity cannot be negative`);
         }
-        if (line.unit_rate !== undefined && line.unit_rate < 0) {
+        if (line && line.unit_rate !== undefined && line.unit_rate < 0) {
           throw new Error(`Line ${i + 1}: Unit rate cannot be negative`);
         }
-        if (line.line_total !== undefined && line.line_total < 0) {
+        if (line && line.line_total !== undefined && line.line_total < 0) {
           throw new Error(`Line ${i + 1}: Line total cannot be negative`);
         }
       }
@@ -138,12 +163,8 @@ export class QuoteService {
 
     // Sanitize input data
     const sanitizedData: CreateQuoteRequest = {
-      ...quoteData,
+      company_id: quoteData.company_id,
       quote_number: finalQuoteNumber,
-      project_name: quoteData.project_name?.trim() || null,
-      customer_name: quoteData.customer_name?.trim() || null,
-      customer_email: quoteData.customer_email?.trim() || null,
-      customer_mobile: quoteData.customer_mobile?.trim() || null,
       tier: quoteData.tier || 'economy',
       status: quoteData.status || 'draft',
       subtotal: calculatedSubtotal,
@@ -152,6 +173,19 @@ export class QuoteService {
       total: calculatedTotal,
       lines: quoteData.lines || []
     };
+    
+    if (quoteData.project_name?.trim()) {
+      sanitizedData.project_name = quoteData.project_name.trim();
+    }
+    if (quoteData.customer_name?.trim()) {
+      sanitizedData.customer_name = quoteData.customer_name.trim();
+    }
+    if (quoteData.customer_email?.trim()) {
+      sanitizedData.customer_email = quoteData.customer_email.trim();
+    }
+    if (quoteData.customer_mobile?.trim()) {
+      sanitizedData.customer_mobile = quoteData.customer_mobile.trim();
+    }
 
     // Validate email format if provided
     if (sanitizedData.customer_email) {
@@ -199,13 +233,13 @@ export class QuoteService {
     if (quoteData.lines && quoteData.lines.length > 0) {
       for (let i = 0; i < quoteData.lines.length; i++) {
         const line = quoteData.lines[i];
-        if (line.quantity !== undefined && line.quantity < 0) {
+        if (line && line.quantity !== undefined && line.quantity < 0) {
           throw new Error(`Line ${i + 1}: Quantity cannot be negative`);
         }
-        if (line.unit_rate !== undefined && line.unit_rate < 0) {
+        if (line && line.unit_rate !== undefined && line.unit_rate < 0) {
           throw new Error(`Line ${i + 1}: Unit rate cannot be negative`);
         }
-        if (line.line_total !== undefined && line.line_total < 0) {
+        if (line && line.line_total !== undefined && line.line_total < 0) {
           throw new Error(`Line ${i + 1}: Line total cannot be negative`);
         }
       }
@@ -260,16 +294,24 @@ export class QuoteService {
       sanitizedData.quote_number = quoteData.quote_number.trim();
     }
     if (quoteData.project_name !== undefined) {
-      sanitizedData.project_name = quoteData.project_name?.trim() || null;
+      if (quoteData.project_name?.trim()) {
+        sanitizedData.project_name = quoteData.project_name.trim();
+      }
     }
     if (quoteData.customer_name !== undefined) {
-      sanitizedData.customer_name = quoteData.customer_name?.trim() || null;
+      if (quoteData.customer_name?.trim()) {
+        sanitizedData.customer_name = quoteData.customer_name.trim();
+      }
     }
     if (quoteData.customer_email !== undefined) {
-      sanitizedData.customer_email = quoteData.customer_email?.trim() || null;
+      if (quoteData.customer_email?.trim()) {
+        sanitizedData.customer_email = quoteData.customer_email.trim();
+      }
     }
     if (quoteData.customer_mobile !== undefined) {
-      sanitizedData.customer_mobile = quoteData.customer_mobile?.trim() || null;
+      if (quoteData.customer_mobile?.trim()) {
+        sanitizedData.customer_mobile = quoteData.customer_mobile.trim();
+      }
     }
     if (quoteData.tier !== undefined) {
       sanitizedData.tier = quoteData.tier;
@@ -278,16 +320,28 @@ export class QuoteService {
       sanitizedData.status = quoteData.status;
     }
     if (quoteData.subtotal !== undefined || calculatedSubtotal !== undefined) {
-      sanitizedData.subtotal = calculatedSubtotal ?? quoteData.subtotal;
+      const finalSubtotal = calculatedSubtotal ?? quoteData.subtotal;
+      if (finalSubtotal !== undefined) {
+        sanitizedData.subtotal = finalSubtotal;
+      }
     }
     if (quoteData.tax !== undefined || calculatedTax !== undefined) {
-      sanitizedData.tax = calculatedTax ?? quoteData.tax;
+      const finalTax = calculatedTax ?? quoteData.tax;
+      if (finalTax !== undefined) {
+        sanitizedData.tax = finalTax;
+      }
     }
     if (quoteData.discount !== undefined || calculatedDiscount !== undefined) {
-      sanitizedData.discount = calculatedDiscount ?? quoteData.discount;
+      const finalDiscount = calculatedDiscount ?? quoteData.discount;
+      if (finalDiscount !== undefined) {
+        sanitizedData.discount = finalDiscount;
+      }
     }
     if (quoteData.total !== undefined || calculatedTotal !== undefined) {
-      sanitizedData.total = calculatedTotal ?? quoteData.total;
+      const finalTotal = calculatedTotal ?? quoteData.total;
+      if (finalTotal !== undefined) {
+        sanitizedData.total = finalTotal;
+      }
     }
     if (quoteData.lines !== undefined) {
       sanitizedData.lines = quoteData.lines;

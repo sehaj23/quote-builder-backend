@@ -3,14 +3,10 @@ import { CompanyService } from '@/services/CompanyService.js';
 import { ApiResponse, CreateCompanyRequest, UpdateCompanyRequest } from '@/types/index.js';
 
 export class CompanyController {
-  private companyService: CompanyService;
-
-  constructor() {
-    this.companyService = new CompanyService();
-  }
+  constructor(private companyService: CompanyService) {}
 
   // GET /api/companies
-  getAllCompanies = async (req: Request, res: Response): Promise<void> => {
+  async getAllCompanies(_req: Request, res: Response): Promise<void> {
     try {
       const companies = await this.companyService.getAllCompanies();
       
@@ -31,12 +27,12 @@ export class CompanyController {
 
       res.status(500).json(response);
     }
-  };
+  }
 
   // GET /api/companies/:id
-  getCompanyById = async (req: Request, res: Response): Promise<void> => {
+  async getCompanyById(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params['id'] || '');
       
       if (isNaN(id)) {
         const response: ApiResponse = {
@@ -57,7 +53,7 @@ export class CompanyController {
 
       res.status(200).json(response);
     } catch (error) {
-      console.error(`Controller error - getCompanyById(${req.params.id}):`, error);
+      console.error(`Controller error - getCompanyById(${req.params['id']}):`, error);
       
       const statusCode = error instanceof Error && error.message === 'Company not found' ? 404 : 500;
       
@@ -68,10 +64,10 @@ export class CompanyController {
 
       res.status(statusCode).json(response);
     }
-  };
+  }
 
   // POST /api/companies
-  createCompany = async (req: Request, res: Response): Promise<void> => {
+  async createCompany(req: Request, res: Response): Promise<void> {
     try {
       const companyData: CreateCompanyRequest = req.body;
       
@@ -112,12 +108,12 @@ export class CompanyController {
 
       res.status(statusCode).json(response);
     }
-  };
+  }
 
   // PUT /api/companies/:id
-  updateCompany = async (req: Request, res: Response): Promise<void> => {
+  async updateCompany(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params['id'] || '');
       
       if (isNaN(id)) {
         const response: ApiResponse = {
@@ -149,7 +145,7 @@ export class CompanyController {
 
       res.status(200).json(response);
     } catch (error) {
-      console.error(`Controller error - updateCompany(${req.params.id}):`, error);
+      console.error(`Controller error - updateCompany(${req.params['id']}):`, error);
       
       let statusCode = 500;
       if (error instanceof Error) {
@@ -169,12 +165,12 @@ export class CompanyController {
 
       res.status(statusCode).json(response);
     }
-  };
+  }
 
   // DELETE /api/companies/:id
-  deleteCompany = async (req: Request, res: Response): Promise<void> => {
+  async deleteCompany(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params['id'] || '');
       
       if (isNaN(id)) {
         const response: ApiResponse = {
@@ -194,7 +190,7 @@ export class CompanyController {
 
       res.status(200).json(response);
     } catch (error) {
-      console.error(`Controller error - deleteCompany(${req.params.id}):`, error);
+      console.error(`Controller error - deleteCompany(${req.params['id']}):`, error);
       
       const statusCode = error instanceof Error && error.message === 'Company not found' ? 404 : 500;
       
@@ -205,10 +201,10 @@ export class CompanyController {
 
       res.status(statusCode).json(response);
     }
-  };
+  }
 
   // GET /api/companies/stats
-  getCompanyStats = async (req: Request, res: Response): Promise<void> => {
+  async getCompanyStats(_req: Request, res: Response): Promise<void> {
     try {
       const stats = await this.companyService.getCompanyStats();
       
@@ -229,12 +225,12 @@ export class CompanyController {
 
       res.status(500).json(response);
     }
-  };
+  }
 
   // POST /api/companies/:id/increment-quote-number
-  incrementQuoteNumber = async (req: Request, res: Response): Promise<void> => {
+  async incrementQuoteNumber(req: Request, res: Response): Promise<void> {
     try {
-      const companyId = parseInt(req.params.id);
+      const companyId = parseInt(req.params['id'] || '');
       
       if (isNaN(companyId)) {
         const response: ApiResponse = {
@@ -255,7 +251,7 @@ export class CompanyController {
 
       res.status(200).json(response);
     } catch (error) {
-      console.error(`Controller error - incrementQuoteNumber(${req.params.id}):`, error);
+      console.error(`Controller error - incrementQuoteNumber(${req.params['id']}):`, error);
       
       const statusCode = error instanceof Error && error.message === 'Company not found' ? 404 : 500;
       const response: ApiResponse = {
@@ -265,5 +261,42 @@ export class CompanyController {
 
       res.status(statusCode).json(response);
     }
-  };
+  }
+
+  // GET /api/companies/:id/analytics
+  async getCompanyAnalytics(req: Request, res: Response): Promise<void> {
+    try {
+      const companyId = parseInt(req.params['id'] || '');
+      
+      if (isNaN(companyId)) {
+        const response: ApiResponse = {
+          success: false,
+          error: 'Invalid company ID format'
+        };
+        res.status(400).json(response);
+        return;
+      }
+
+      const analytics = await this.companyService.getCompanyAnalytics(companyId);
+      
+      const response: ApiResponse = {
+        success: true,
+        data: analytics,
+        message: 'Analytics retrieved successfully'
+      };
+
+      res.status(200).json(response);
+    } catch (error) {
+      console.error(`Controller error - getCompanyAnalytics(${req.params['id']}):`, error);
+      
+      const statusCode = error instanceof Error && error.message === 'Company not found' ? 404 : 500;
+      
+      const response: ApiResponse = {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to retrieve analytics'
+      };
+
+      res.status(statusCode).json(response);
+    }
+  }
 }

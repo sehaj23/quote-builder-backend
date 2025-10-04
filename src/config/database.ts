@@ -71,13 +71,16 @@ const createTables = async (): Promise<void> => {
         phone VARCHAR(50),
         terms TEXT,
         logo_path VARCHAR(500),
+        logo_attachment_id INT,
         default_tax DECIMAL(5,2) DEFAULT 0,
         quote_prefix VARCHAR(50) DEFAULT 'QTE',
         next_quote_number INT DEFAULT 100,
+        currency VARCHAR(10) DEFAULT 'INR',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         INDEX idx_company_name (name),
-        INDEX idx_company_email (email)
+        INDEX idx_company_email (email),
+        INDEX idx_company_logo (logo_attachment_id)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
     
@@ -123,6 +126,27 @@ const createTables = async (): Promise<void> => {
       } else {
         console.log('✅ next_quote_number column already exists');
       }
+
+      // Check if currency column exists
+      const [currencyColumns] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'companies' 
+          AND COLUMN_NAME = 'currency'
+      `) as any[];
+      
+      if (currencyColumns.length === 0) {
+        console.log('➕ Adding currency column to companies table...');
+        await connection.execute(`
+          ALTER TABLE companies 
+          ADD COLUMN currency VARCHAR(10) DEFAULT 'INR' AFTER next_quote_number
+        `);
+        console.log('✅ Added currency column with default INR');
+      } else {
+        console.log('✅ currency column already exists');
+      }
+
     } catch (migrationError) {
       console.warn('⚠️  Migration warning:', migrationError);
       // Continue with table creation even if migration fails
@@ -184,6 +208,7 @@ const createTables = async (): Promise<void> => {
       CREATE TABLE IF NOT EXISTS quote_lines (
         id INT PRIMARY KEY AUTO_INCREMENT,
         quote_id INT NOT NULL,
+        company_id INT NOT NULL,
         item_id INT NOT NULL,
         description TEXT,
         unit VARCHAR(50),
@@ -194,9 +219,75 @@ const createTables = async (): Promise<void> => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (quote_id) REFERENCES quotes (id) ON DELETE CASCADE,
+        FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE CASCADE,
         FOREIGN KEY (item_id) REFERENCES items (id) ON DELETE CASCADE,
         INDEX idx_line_quote (quote_id),
+        INDEX idx_line_company (company_id),
         INDEX idx_line_item (item_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // Users table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(255) PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        name VARCHAR(255),
+        is_super_user BOOLEAN DEFAULT FALSE,
+        is_approved BOOLEAN DEFAULT FALSE,
+        company_id INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        last_activity TIMESTAMP,
+        FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE SET NULL,
+        INDEX idx_user_email (email),
+        INDEX idx_user_company (company_id),
+        INDEX idx_user_approved (is_approved)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // Attachments table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS attachments (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        company_id INT NOT NULL,
+        filename VARCHAR(255) NOT NULL,
+        original_filename VARCHAR(255) NOT NULL,
+        s3_key VARCHAR(500) NOT NULL,
+        s3_url VARCHAR(1000) NOT NULL,
+        file_size INT,
+        mime_type VARCHAR(100),
+        type VARCHAR(50) DEFAULT 'document',
+        uploaded_by VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE CASCADE,
+        FOREIGN KEY (uploaded_by) REFERENCES users (id) ON DELETE SET NULL,
+        INDEX idx_attachment_company (company_id),
+        INDEX idx_attachment_type (type),
+        INDEX idx_attachment_user (uploaded_by)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // User activity log table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS user_activity (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        user_id VARCHAR(255) NOT NULL,
+        company_id INT,
+        action VARCHAR(100) NOT NULL,
+        resource_type VARCHAR(50),
+        resource_id INT,
+        description TEXT,
+        ip_address VARCHAR(45),
+        user_agent TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+        FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE SET NULL,
+        INDEX idx_activity_user (user_id),
+        INDEX idx_activity_company (company_id),
+        INDEX idx_activity_action (action),
+        INDEX idx_activity_date (created_at)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
@@ -238,6 +329,75 @@ const createTables = async (): Promise<void> => {
       if (error.code !== 'ER_DUP_FIELDNAME') {
         throw error;
       }
+    }
+
+    // Migration: Add missing auth columns to users table
+    console.log('🔄 Checking for missing user table columns...');
+    try {
+      // Check if cognito_id column exists
+      const [cognitoIdColumns] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'users' 
+          AND COLUMN_NAME = 'cognito_id'
+      `) as any[];
+      
+      if (cognitoIdColumns.length === 0) {
+        console.log('➕ Adding cognito_id column to users table...');
+        await connection.execute(`
+          ALTER TABLE users 
+          ADD COLUMN cognito_id VARCHAR(255) AFTER email,
+          ADD INDEX idx_user_cognito (cognito_id)
+        `);
+        console.log('✅ Added cognito_id column');
+      } else {
+        console.log('✅ cognito_id column already exists');
+      }
+      
+      // Check if first_name column exists
+      const [firstNameColumns] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'users' 
+          AND COLUMN_NAME = 'first_name'
+      `) as any[];
+      
+      if (firstNameColumns.length === 0) {
+        console.log('➕ Adding first_name column to users table...');
+        await connection.execute(`
+          ALTER TABLE users 
+          ADD COLUMN first_name VARCHAR(255) AFTER name
+        `);
+        console.log('✅ Added first_name column');
+      } else {
+        console.log('✅ first_name column already exists');
+      }
+      
+      // Check if last_name column exists
+      const [lastNameColumns] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'users' 
+          AND COLUMN_NAME = 'last_name'
+      `) as any[];
+      
+      if (lastNameColumns.length === 0) {
+        console.log('➕ Adding last_name column to users table...');
+        await connection.execute(`
+          ALTER TABLE users 
+          ADD COLUMN last_name VARCHAR(255) AFTER first_name
+        `);
+        console.log('✅ Added last_name column');
+      } else {
+        console.log('✅ last_name column already exists');
+      }
+      
+    } catch (migrationError) {
+      console.warn('⚠️  User table migration warning:', migrationError);
+      // Continue with table creation even if migration fails
     }
 
     console.log('✅ Database tables created successfully');

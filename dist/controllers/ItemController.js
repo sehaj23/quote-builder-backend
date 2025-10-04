@@ -1,12 +1,11 @@
-import { ItemService } from '@/services/ItemService.js';
 export class ItemController {
     itemService;
-    constructor() {
-        this.itemService = new ItemService();
+    constructor(itemService) {
+        this.itemService = itemService;
     }
     async getItemsByCompany(req, res) {
         try {
-            const companyId = parseInt(req.params.companyId);
+            const companyId = parseInt(req.params['companyId'] || '');
             if (isNaN(companyId)) {
                 res.status(400).json({
                     success: false,
@@ -31,7 +30,7 @@ export class ItemController {
     }
     async getItemById(req, res) {
         try {
-            const itemId = parseInt(req.params.id);
+            const itemId = parseInt(req.params['id'] || '');
             if (isNaN(itemId)) {
                 res.status(400).json({
                     success: false,
@@ -63,7 +62,7 @@ export class ItemController {
     }
     async createItem(req, res) {
         try {
-            const companyId = parseInt(req.params.companyId);
+            const companyId = parseInt(req.params['companyId'] || '');
             if (isNaN(companyId)) {
                 res.status(400).json({
                     success: false,
@@ -92,7 +91,7 @@ export class ItemController {
     }
     async updateItem(req, res) {
         try {
-            const itemId = parseInt(req.params.id);
+            const itemId = parseInt(req.params['id'] || '');
             if (isNaN(itemId)) {
                 res.status(400).json({
                     success: false,
@@ -125,7 +124,7 @@ export class ItemController {
     }
     async deleteItem(req, res) {
         try {
-            const itemId = parseInt(req.params.id);
+            const itemId = parseInt(req.params['id'] || '');
             if (isNaN(itemId)) {
                 res.status(400).json({
                     success: false,
@@ -157,8 +156,8 @@ export class ItemController {
     }
     async searchItems(req, res) {
         try {
-            const companyId = parseInt(req.params.companyId);
-            const query = req.query.query;
+            const companyId = parseInt(req.params['companyId'] || '');
+            const query = req.query['query'];
             if (isNaN(companyId)) {
                 res.status(400).json({
                     success: false,
@@ -190,8 +189,8 @@ export class ItemController {
     }
     async getItemsByCategory(req, res) {
         try {
-            const companyId = parseInt(req.params.companyId);
-            const category = req.params.category;
+            const companyId = parseInt(req.params['companyId'] || '');
+            const category = req.params['category'];
             if (isNaN(companyId)) {
                 res.status(400).json({
                     success: false,
@@ -199,7 +198,7 @@ export class ItemController {
                 });
                 return;
             }
-            const items = await this.itemService.getItemsByCategory(companyId, category);
+            const items = await this.itemService.getItemsByCategory(companyId, category || '');
             res.json({
                 success: true,
                 data: items,
@@ -216,7 +215,7 @@ export class ItemController {
     }
     async getCategories(req, res) {
         try {
-            const companyId = parseInt(req.params.companyId);
+            const companyId = parseInt(req.params['companyId'] || '');
             if (isNaN(companyId)) {
                 res.status(400).json({
                     success: false,

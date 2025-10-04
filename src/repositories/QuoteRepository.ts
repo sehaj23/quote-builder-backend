@@ -30,6 +30,89 @@ export class QuoteRepository {
     }
   }
 
+  async findByCompanyIdPaginated(
+    companyId: number, 
+    limit: number, 
+    offset: number, 
+    filters: { search?: string; status?: string; tier?: string }
+  ): Promise<Quote[]> {
+    try {
+      const connection = this.getDbConnection();
+      let query = 'SELECT * FROM quotes WHERE company_id = ?';
+      const params: any[] = [companyId];
+
+      // Add search filter
+      if (filters.search && filters.search.trim()) {
+        query += ' AND (quote_number LIKE ? OR customer_name LIKE ? OR project_name LIKE ? OR customer_email LIKE ?)';
+        const searchTerm = `%${filters.search.trim()}%`;
+        params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+      }
+
+      // Add status filter
+      if (filters.status && filters.status.trim()) {
+        query += ' AND status = ?';
+        params.push(filters.status.trim());
+      }
+
+      // Add tier filter
+      if (filters.tier && filters.tier.trim()) {
+        query += ' AND tier = ?';
+        params.push(filters.tier.trim());
+      }
+
+      // Ensure limit and offset are valid integers
+      const limitInt = parseInt(String(limit)) || 10;
+      const offsetInt = parseInt(String(offset)) || 0;
+      
+      // Use string interpolation for LIMIT/OFFSET instead of prepared statements
+      // This avoids MySQL parameter binding issues with LIMIT/OFFSET
+      query += ` ORDER BY created_at DESC LIMIT ${limitInt} OFFSET ${offsetInt}`;
+      
+
+      const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+      return rows as Quote[];
+    } catch (error) {
+      console.error('Error fetching paginated quotes for company:', error);
+      throw new Error('Failed to fetch paginated quotes from database');
+    }
+  }
+
+  async countByCompanyId(
+    companyId: number, 
+    filters: { search?: string; status?: string; tier?: string }
+  ): Promise<number> {
+    try {
+      const connection = this.getDbConnection();
+      let query = 'SELECT COUNT(*) as count FROM quotes WHERE company_id = ?';
+      const params: any[] = [companyId];
+
+      // Add search filter
+      if (filters.search && filters.search.trim()) {
+        query += ' AND (quote_number LIKE ? OR customer_name LIKE ? OR project_name LIKE ? OR customer_email LIKE ?)';
+        const searchTerm = `%${filters.search.trim()}%`;
+        params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+      }
+
+      // Add status filter
+      if (filters.status && filters.status.trim()) {
+        query += ' AND status = ?';
+        params.push(filters.status.trim());
+      }
+
+      // Add tier filter
+      if (filters.tier && filters.tier.trim()) {
+        query += ' AND tier = ?';
+        params.push(filters.tier.trim());
+      }
+
+      const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+      return (rows as any[])[0]?.count || 0;
+    } catch (error) {
+      console.error('Error counting quotes for company:', error);
+      throw new Error('Failed to count quotes from database');
+    }
+  }
+
   async findById(id: number): Promise<Quote | null> {
     try {
       const connection = this.getDbConnection();
@@ -348,25 +431,25 @@ export class QuoteRepository {
               let newUnitRate = line.unit_rate; // fallback to original rate
               
               // Calculate new unit rate based on tier
-              if (newTier === 'luxury') {
-                newUnitRate = item.luxury_unit_cost || item.unit_cost || line.unit_rate;
-              } else if (newTier === 'economy') {
-                newUnitRate = item.economy_unit_cost || item.unit_cost || line.unit_rate;
+              if (item && newTier === 'luxury') {
+                newUnitRate = item['luxury_unit_cost'] || item['unit_cost'] || line.unit_rate;
+              } else if (item && newTier === 'economy') {
+                newUnitRate = item['economy_unit_cost'] || item['unit_cost'] || line.unit_rate;
               }
               
               // Recalculate line total
               const areaMultiplier = line.area && line.area > 0 ? line.area : 1;
-              const newLineTotal = Math.round((line.quantity || 1) * newUnitRate * areaMultiplier * 100) / 100;
+              const newLineTotal = Math.round((line.quantity || 1) * (newUnitRate || 0) * areaMultiplier * 100) / 100;
               
               adjustedLines.push({
                 ...line,
-                unit_rate: newUnitRate,
+                unit_rate: newUnitRate || 0,
                 line_total: newLineTotal
               });
               
               newSubtotal += newLineTotal;
               
-              console.log(`Item ${item.name}: ${line.unit_rate} → ${newUnitRate} (${line.line_total} → ${newLineTotal})`);
+              console.log(`Item ${item ? item['name'] : 'Unknown'}: ${line.unit_rate} → ${newUnitRate} (${line.line_total} → ${newLineTotal})`);
             } else {
               // Item not found, keep original values
               adjustedLines.push(line);

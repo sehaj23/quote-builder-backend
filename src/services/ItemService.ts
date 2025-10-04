@@ -2,11 +2,7 @@ import { Item, CreateItemRequest, UpdateItemRequest } from '@/types/index.js';
 import { ItemRepository } from '@/repositories/ItemRepository.js';
 
 export class ItemService {
-  private itemRepository: ItemRepository;
-
-  constructor() {
-    this.itemRepository = new ItemRepository();
-  }
+  constructor(private itemRepository: ItemRepository) {}
 
   async getItemsByCompany(companyId: number): Promise<Item[]> {
     if (!companyId || companyId <= 0) {
@@ -14,6 +10,35 @@ export class ItemService {
     }
 
     return await this.itemRepository.findByCompanyId(companyId);
+  }
+
+  async getItemsByCompanyPaginated(
+    companyId: number, 
+    page: number, 
+    pageSize: number, 
+    filters: { search?: string; category?: string }
+  ): Promise<{ items: Item[]; totalCount: number }> {
+    if (!companyId || companyId <= 0) {
+      throw new Error('Valid company ID is required');
+    }
+
+    if (page < 1 || pageSize < 1) {
+      throw new Error('Page and pageSize must be positive integers');
+    }
+
+    const offset = (page - 1) * pageSize;
+    const items = await this.itemRepository.findByCompanyIdPaginated(
+      companyId, 
+      pageSize, 
+      offset, 
+      filters
+    );
+    const totalCount = await this.itemRepository.countByCompanyId(companyId, filters);
+
+    return {
+      items,
+      totalCount
+    };
   }
 
   async getItemById(id: number): Promise<Item | null> {
@@ -44,16 +69,24 @@ export class ItemService {
 
     // Sanitize input data
     const sanitizedData: CreateItemRequest = {
-      ...itemData,
+      company_id: itemData.company_id,
       name: itemData.name.trim(),
-      default_description: itemData.default_description?.trim() || null,
       unit: itemData.unit.trim(),
-      tags: itemData.tags?.trim() || null,
-      category: itemData.category?.trim() || null,
+      unit_cost: itemData.unit_cost,
       default_area: itemData.default_area || 1,
       economy_unit_cost: itemData.economy_unit_cost || itemData.unit_cost,
       luxury_unit_cost: itemData.luxury_unit_cost || itemData.unit_cost
     };
+    
+    if (itemData.default_description?.trim()) {
+      sanitizedData.default_description = itemData.default_description.trim();
+    }
+    if (itemData.tags?.trim()) {
+      sanitizedData.tags = itemData.tags.trim();
+    }
+    if (itemData.category?.trim()) {
+      sanitizedData.category = itemData.category.trim();
+    }
 
     try {
       const newItemId = await this.itemRepository.create(sanitizedData);
@@ -104,7 +137,9 @@ export class ItemService {
       sanitizedData.name = itemData.name.trim();
     }
     if (itemData.default_description !== undefined) {
-      sanitizedData.default_description = itemData.default_description?.trim() || null;
+      if (itemData.default_description?.trim()) {
+        sanitizedData.default_description = itemData.default_description.trim();
+      }
     }
     if (itemData.unit !== undefined) {
       sanitizedData.unit = itemData.unit.trim();
@@ -122,10 +157,14 @@ export class ItemService {
       sanitizedData.luxury_unit_cost = itemData.luxury_unit_cost;
     }
     if (itemData.tags !== undefined) {
-      sanitizedData.tags = itemData.tags?.trim() || null;
+      if (itemData.tags?.trim()) {
+        sanitizedData.tags = itemData.tags.trim();
+      }
     }
     if (itemData.category !== undefined) {
-      sanitizedData.category = itemData.category?.trim() || null;
+      if (itemData.category?.trim()) {
+        sanitizedData.category = itemData.category.trim();
+      }
     }
 
     try {

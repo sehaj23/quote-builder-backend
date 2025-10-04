@@ -6,6 +6,10 @@ export interface Company {
     phone?: string;
     terms?: string;
     logo_path?: string;
+    logo_attachment_id?: number;
+    default_tax?: number;
+    quote_prefix?: string;
+    next_quote_number?: number;
     created_at?: Date;
     updated_at?: Date;
 }
@@ -37,6 +41,7 @@ export interface Quote {
     subtotal?: number;
     tax?: number;
     discount?: number;
+    discount_type?: 'fixed' | 'percentage';
     total?: number;
     created_at?: Date;
     updated_at?: Date;
@@ -44,6 +49,7 @@ export interface Quote {
 export interface QuoteLine {
     id?: number;
     quote_id: number;
+    company_id: number;
     item_id: number;
     description?: string;
     unit?: string;
@@ -65,6 +71,9 @@ export interface CreateCompanyRequest {
     phone?: string;
     terms?: string;
     logo_path?: string;
+    default_tax?: number;
+    quote_prefix?: string;
+    next_quote_number?: number;
 }
 export interface UpdateCompanyRequest extends Partial<CreateCompanyRequest> {
 }
@@ -94,6 +103,7 @@ export interface CreateQuoteRequest {
     subtotal?: number;
     tax?: number;
     discount?: number;
+    discount_type?: 'fixed' | 'percentage';
     total?: number;
     lines: Omit<QuoteLine, 'id' | 'quote_id' | 'created_at' | 'updated_at'>[];
 }
@@ -142,5 +152,91 @@ export interface SearchItemsOptions extends PaginationOptions {
     category?: string;
     minCost?: number;
     maxCost?: number;
+}
+export interface User {
+    id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+    isApproved?: boolean;
+    isSuperUser?: boolean;
+    is_super_user?: boolean;
+    is_approved?: boolean;
+    cognitoId?: string;
+    company_id?: number;
+    created_at?: Date;
+    updated_at?: Date;
+    last_activity?: Date;
+    createdAt?: string;
+    lastActivityAt?: string;
+}
+export interface CreateUserRequest {
+    id?: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+    cognitoId?: string;
+    isApproved?: boolean;
+    company_id?: number;
+}
+export interface UpdateUserRequest {
+    name?: string;
+    firstName?: string;
+    lastName?: string;
+    is_super_user?: boolean;
+    is_approved?: boolean;
+    isApproved?: boolean;
+    isSuperUser?: boolean;
+    company_id?: number;
+    last_activity?: Date;
+}
+export interface Attachment {
+    id?: number;
+    company_id: number;
+    filename: string;
+    original_filename: string;
+    s3_key: string;
+    s3_url: string;
+    file_size?: number;
+    mime_type?: string;
+    type?: string;
+    uploaded_by?: string;
+    created_at?: Date;
+    updated_at?: Date;
+}
+export interface CreateAttachmentRequest {
+    company_id: number;
+    filename: string;
+    original_filename: string;
+    s3_key: string;
+    s3_url: string;
+    file_size?: number;
+    mime_type?: string;
+    type?: string;
+    uploaded_by?: string;
+}
+export interface UserActivity {
+    id?: number;
+    user_id: string;
+    company_id?: number;
+    action: string;
+    resource_type?: string;
+    resource_id?: number;
+    description?: string;
+    ip_address?: string;
+    user_agent?: string;
+    created_at?: Date;
+}
+export interface CreateActivityRequest {
+    user_id: string;
+    company_id?: number | undefined;
+    action: string;
+    resource_type?: string | undefined;
+    resource_id?: number | undefined;
+    description?: string | undefined;
+    ip_address?: string | undefined;
+    user_agent?: string | undefined;
 }
 //# sourceMappingURL=index.d.ts.map

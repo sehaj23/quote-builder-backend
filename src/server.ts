@@ -12,6 +12,10 @@ import { ApiResponse } from '@/types/index.js';
 import companyRoutes from '@/routes/companyRoutes.js';
 import itemRoutes, { individualItemRouter, categoryRouter } from '@/routes/itemRoutes.js';
 import quoteRoutes, { individualQuoteRouter } from '@/routes/quoteRoutes.js';
+import userRoutes from '@/routes/userRoutes.js';
+import attachmentRoutes, { individualAttachmentRouter } from '@/routes/attachmentRoutes.js';
+import activityRoutes from '@/routes/activityRoutes.js';
+import authRoutes from '@/routes/authRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -46,7 +50,7 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // Health check endpoint
-app.get('/health', async (req, res) => {
+app.get('/health', async (_req, res) => {
   try {
     const dbHealthy = await testConnection();
     
@@ -74,6 +78,7 @@ app.get('/health', async (req, res) => {
 });
 
 // API routes
+app.use('/api/auth', authRoutes);
 app.use('/api/companies', companyRoutes);
 
 // Item routes - nested under companies and as individual routes
@@ -85,8 +90,18 @@ app.use('/api/companies/:companyId/categories', categoryRouter);
 app.use('/api/companies/:companyId/quotes', quoteRoutes);
 app.use('/api/quotes', individualQuoteRouter);
 
+// User routes
+app.use('/api/users', userRoutes);
+
+// Attachment routes - nested under companies and as individual routes
+app.use('/api/companies', attachmentRoutes);
+app.use('/api/attachments', individualAttachmentRouter);
+
+// Activity routes
+app.use('/api/activities', activityRoutes);
+
 // Root endpoint
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   const response: ApiResponse = {
     success: true,
     data: {

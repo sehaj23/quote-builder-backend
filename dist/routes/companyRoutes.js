@@ -1,12 +1,20 @@
 import { Router } from 'express';
 import { CompanyController } from '@/controllers/CompanyController.js';
+import { CompanyService } from '@/services/CompanyService.js';
+import { CompanyRepository } from '@/repositories/CompanyRepository.js';
+import { authenticateToken, requireApproved, requireCompanyAccess } from '@/middleware/auth.js';
 const router = Router();
-const companyController = new CompanyController();
-router.get('/stats', companyController.getCompanyStats);
-router.get('/', companyController.getAllCompanies);
-router.get('/:id', companyController.getCompanyById);
-router.post('/', companyController.createCompany);
-router.put('/:id', companyController.updateCompany);
-router.delete('/:id', companyController.deleteCompany);
+const companyRepository = new CompanyRepository();
+const companyService = new CompanyService(companyRepository);
+const companyController = new CompanyController(companyService);
+router.use(authenticateToken);
+router.use(requireApproved);
+router.get('/stats', companyController.getCompanyStats.bind(companyController));
+router.get('/', companyController.getAllCompanies.bind(companyController));
+router.get('/:id', requireCompanyAccess, companyController.getCompanyById.bind(companyController));
+router.post('/', companyController.createCompany.bind(companyController));
+router.put('/:id', requireCompanyAccess, companyController.updateCompany.bind(companyController));
+router.delete('/:id', requireCompanyAccess, companyController.deleteCompany.bind(companyController));
+router.post('/:id/increment-quote-number', requireCompanyAccess, companyController.incrementQuoteNumber.bind(companyController));
 export default router;
 //# sourceMappingURL=companyRoutes.js.map

@@ -1,12 +1,12 @@
 import { CompanyRepository } from '@/repositories/CompanyRepository.js';
+import { QuoteRepository } from '@/repositories/QuoteRepository.js';
 import { Company, CreateCompanyRequest, UpdateCompanyRequest } from '@/types/index.js';
 
 export class CompanyService {
-  private companyRepository: CompanyRepository;
-
-  constructor() {
-    this.companyRepository = new CompanyRepository();
-  }
+  constructor(
+    private companyRepository: CompanyRepository,
+    private quoteRepository: QuoteRepository
+  ) {}
 
   async getAllCompanies(): Promise<Company[]> {
     try {
@@ -58,13 +58,30 @@ export class CompanyService {
 
       // Sanitize and prepare data
       const sanitizedData: CreateCompanyRequest = {
-        name: companyData.name.trim(),
-        address: companyData.address?.trim() || undefined,
-        email: companyData.email?.trim().toLowerCase() || undefined,
-        phone: companyData.phone?.trim() || undefined,
-        terms: companyData.terms?.trim() || undefined,
-        logo_path: companyData.logo_path?.trim() || undefined
+        name: companyData.name.trim()
       };
+      
+      if (companyData.address?.trim()) {
+        sanitizedData.address = companyData.address.trim();
+      }
+      if (companyData.email?.trim()) {
+        sanitizedData.email = companyData.email.trim().toLowerCase();
+      }
+      if (companyData.phone?.trim()) {
+        sanitizedData.phone = companyData.phone.trim();
+      }
+      if (companyData.terms?.trim()) {
+        sanitizedData.terms = companyData.terms.trim();
+      }
+      if (companyData.logo_path?.trim()) {
+        sanitizedData.logo_path = companyData.logo_path.trim();
+      }
+      if (companyData.currency?.trim()) {
+        sanitizedData.currency = companyData.currency.trim().toUpperCase();
+      } else {
+        // Default to INR if not provided
+        sanitizedData.currency = 'INR';
+      }
 
       // Create the company
       const companyId = await this.companyRepository.create(sanitizedData);
@@ -117,19 +134,34 @@ export class CompanyService {
         sanitizedData.name = companyData.name.trim();
       }
       if (companyData.address !== undefined) {
-        sanitizedData.address = companyData.address?.trim() || undefined;
+        if (companyData.address?.trim()) {
+          sanitizedData.address = companyData.address.trim();
+        }
       }
       if (companyData.email !== undefined) {
-        sanitizedData.email = companyData.email?.trim().toLowerCase() || undefined;
+        if (companyData.email?.trim()) {
+          sanitizedData.email = companyData.email.trim().toLowerCase();
+        }
       }
       if (companyData.phone !== undefined) {
-        sanitizedData.phone = companyData.phone?.trim() || undefined;
+        if (companyData.phone?.trim()) {
+          sanitizedData.phone = companyData.phone.trim();
+        }
       }
       if (companyData.terms !== undefined) {
-        sanitizedData.terms = companyData.terms?.trim() || undefined;
+        if (companyData.terms?.trim()) {
+          sanitizedData.terms = companyData.terms.trim();
+        }
       }
       if (companyData.logo_path !== undefined) {
-        sanitizedData.logo_path = companyData.logo_path?.trim() || undefined;
+        if (companyData.logo_path?.trim()) {
+          sanitizedData.logo_path = companyData.logo_path.trim();
+        }
+      }
+      if (companyData.currency !== undefined) {
+        if (companyData.currency?.trim()) {
+          sanitizedData.currency = companyData.currency.trim().toUpperCase();
+        }
       }
 
       // Update the company
@@ -209,6 +241,83 @@ export class CompanyService {
       return newNextNumber;
     } catch (error) {
       console.error(`Service error - incrementQuoteNumber(${companyId}):`, error);
+      throw error;
+    }
+  }
+
+  async getCompanyAnalytics(companyId: number): Promise<any> {
+    try {
+      if (!companyId || companyId <= 0) {
+        throw new Error('Invalid company ID provided');
+      }
+
+      // Check if company exists
+      const company = await this.companyRepository.findById(companyId);
+      if (!company) {
+        throw new Error('Company not found');
+      }
+
+      // Get all quotes for the company
+      const quotes = await this.quoteRepository.findByCompanyId(companyId);
+      
+      // Calculate analytics
+      const totalQuotes = quotes.length;
+      
+      // Count quotes by status
+      const quotesByStatus = {
+        draft: 0,
+        sent: 0,
+        approved: 0,
+        rejected: 0
+      };
+
+      let totalRevenue = 0;
+      const monthlyData: { [key: string]: number } = {};
+
+      quotes.forEach(quote => {
+        // Count by status
+        if (quote.status && quotesByStatus.hasOwnProperty(quote.status)) {
+          quotesByStatus[quote.status as keyof typeof quotesByStatus]++;
+        }
+
+        // Calculate revenue (only for approved quotes)
+        if (quote.status === 'approved') {
+          totalRevenue += quote.total || 0;
+        }
+
+        // Group by month
+        if (quote.created_at) {
+          const date = new Date(quote.created_at);
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          monthlyData[monthKey] = (monthlyData[monthKey] || 0) + 1;
+        }
+      });
+
+      // Calculate average quote value
+      const averageQuoteValue = totalQuotes > 0 ? totalRevenue / totalQuotes : 0;
+
+      // Convert monthly data to array format
+      const monthlyQuotes = Object.entries(monthlyData)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .slice(-6) // Last 6 months
+        .map(([month, count]) => ({
+          month: new Date(month + '-01').toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short' 
+          }),
+          count
+        }));
+
+      return {
+        totalQuotes,
+        quotesByStatus,
+        totalRevenue: Math.round(totalRevenue * 100) / 100, // Round to 2 decimal places
+        averageQuoteValue: Math.round(averageQuoteValue * 100) / 100,
+        monthlyQuotes,
+        currency: company.currency || 'INR' // Include company currency
+      };
+    } catch (error) {
+      console.error(`Service error - getCompanyAnalytics(${companyId}):`, error);
       throw error;
     }
   }

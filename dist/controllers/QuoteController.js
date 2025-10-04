@@ -1,12 +1,11 @@
-import { QuoteService } from '@/services/QuoteService.js';
 export class QuoteController {
     quoteService;
-    constructor() {
-        this.quoteService = new QuoteService();
+    constructor(quoteService) {
+        this.quoteService = quoteService;
     }
     async getQuotesByCompany(req, res) {
         try {
-            const companyId = parseInt(req.params.companyId);
+            const companyId = parseInt(req.params.companyId || '');
             const limit = req.query.limit ? parseInt(req.query.limit) : undefined;
             const offset = req.query.offset ? parseInt(req.query.offset) : undefined;
             if (isNaN(companyId)) {
@@ -33,7 +32,7 @@ export class QuoteController {
     }
     async getQuoteById(req, res) {
         try {
-            const quoteId = parseInt(req.params.id);
+            const quoteId = parseInt(req.params['id'] || '');
             if (isNaN(quoteId)) {
                 res.status(400).json({
                     success: false,
@@ -83,7 +82,7 @@ export class QuoteController {
     }
     async updateQuote(req, res) {
         try {
-            const quoteId = parseInt(req.params.id);
+            const quoteId = parseInt(req.params['id'] || '');
             if (isNaN(quoteId)) {
                 res.status(400).json({
                     success: false,
@@ -116,7 +115,7 @@ export class QuoteController {
     }
     async deleteQuote(req, res) {
         try {
-            const quoteId = parseInt(req.params.id);
+            const quoteId = parseInt(req.params['id'] || '');
             if (isNaN(quoteId)) {
                 res.status(400).json({
                     success: false,
@@ -148,8 +147,8 @@ export class QuoteController {
     }
     async searchQuotes(req, res) {
         try {
-            const companyId = parseInt(req.params.companyId);
-            const query = req.query.query;
+            const companyId = parseInt(req.params['companyId'] || '');
+            const query = req.query['query'];
             if (isNaN(companyId)) {
                 res.status(400).json({
                     success: false,
@@ -181,7 +180,7 @@ export class QuoteController {
     }
     async duplicateQuote(req, res) {
         try {
-            const quoteId = parseInt(req.params.id);
+            const quoteId = parseInt(req.params['id'] || '');
             const { newTier } = req.body;
             if (isNaN(quoteId)) {
                 res.status(400).json({
@@ -207,7 +206,7 @@ export class QuoteController {
     }
     async updateQuoteStatus(req, res) {
         try {
-            const quoteId = parseInt(req.params.id);
+            const quoteId = parseInt(req.params['id'] || '');
             const { status } = req.body;
             if (isNaN(quoteId)) {
                 res.status(400).json({

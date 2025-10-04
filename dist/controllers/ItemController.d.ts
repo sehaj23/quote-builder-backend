@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
+import { ItemService } from '@/services/ItemService.js';
 export declare class ItemController {
     private itemService;
-    constructor();
+    constructor(itemService: ItemService);
     getItemsByCompany(req: Request, res: Response): Promise<void>;
     getItemById(req: Request, res: Response): Promise<void>;
     createItem(req: Request, res: Response): Promise<void>;

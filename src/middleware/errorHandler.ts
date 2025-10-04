@@ -6,7 +6,7 @@ export const errorHandler = (
   error: Error,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void => {
   console.error('Global error handler:', {
     message: error.message,
@@ -18,7 +18,7 @@ export const errorHandler = (
 
   const response: ApiResponse = {
     success: false,
-    error: process.env.NODE_ENV === 'development' 
+    error: process.env['NODE_ENV'] === 'development' 
       ? error.message 
       : 'An internal server error occurred'
   };
@@ -30,7 +30,7 @@ export const errorHandler = (
 export const notFoundHandler = (
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void => {
   const response: ApiResponse = {
     success: false,

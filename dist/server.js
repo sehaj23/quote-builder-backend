@@ -8,6 +8,10 @@ import { errorHandler, notFoundHandler } from '@/middleware/errorHandler.js';
 import companyRoutes from '@/routes/companyRoutes.js';
 import itemRoutes, { individualItemRouter, categoryRouter } from '@/routes/itemRoutes.js';
 import quoteRoutes, { individualQuoteRouter } from '@/routes/quoteRoutes.js';
+import userRoutes from '@/routes/userRoutes.js';
+import attachmentRoutes, { individualAttachmentRouter } from '@/routes/attachmentRoutes.js';
+import activityRoutes from '@/routes/activityRoutes.js';
+import authRoutes from '@/routes/authRoutes.js';
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -15,7 +19,11 @@ app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:1420',
+    origin: [
+        process.env['FRONTEND_URL'] || 'http://localhost:1420',
+        'http://localhost:1421',
+        'http://localhost:1422'
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -25,7 +33,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 if (process.env.NODE_ENV !== 'test') {
     app.use(morgan('combined'));
 }
-app.get('/health', async (req, res) => {
+app.get('/health', async (_req, res) => {
     try {
         const dbHealthy = await testConnection();
         const response = {
@@ -49,13 +57,18 @@ app.get('/health', async (req, res) => {
         res.status(503).json(response);
     }
 });
+app.use('/api/auth', authRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/companies/:companyId/items', itemRoutes);
 app.use('/api/items', individualItemRouter);
 app.use('/api/companies/:companyId/categories', categoryRouter);
 app.use('/api/companies/:companyId/quotes', quoteRoutes);
 app.use('/api/quotes', individualQuoteRouter);
-app.get('/', (req, res) => {
+app.use('/api/users', userRoutes);
+app.use('/api/companies', attachmentRoutes);
+app.use('/api/attachments', individualAttachmentRouter);
+app.use('/api/activities', activityRoutes);
+app.get('/', (_req, res) => {
     const response = {
         success: true,
         data: {

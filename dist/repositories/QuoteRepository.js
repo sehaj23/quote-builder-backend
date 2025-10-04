@@ -72,8 +72,8 @@ export class QuoteRepository {
             await connection.beginTransaction();
             const [quoteResult] = await connection.execute(`INSERT INTO quotes (
           company_id, quote_number, project_name, customer_name, customer_email, 
-          customer_mobile, tier, status, subtotal, tax, discount, total
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+          customer_mobile, tier, status, subtotal, tax, discount, discount_type, total
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
                 quoteData.company_id,
                 quoteData.quote_number,
                 quoteData.project_name || null,
@@ -85,6 +85,7 @@ export class QuoteRepository {
                 quoteData.subtotal || 0,
                 quoteData.tax || 0,
                 quoteData.discount || 0,
+                quoteData.discount_type || 'fixed',
                 quoteData.total || 0
             ]);
             const quoteId = quoteResult.insertId;
@@ -108,6 +109,13 @@ export class QuoteRepository {
             return quoteId;
         }
         catch (error) {
+            console.error('Error details:', {
+                message: error instanceof Error ? error.message : 'Unknown error',
+                code: error?.code,
+                errno: error?.errno,
+                sqlState: error?.sqlState,
+                sqlMessage: error?.sqlMessage
+            });
             await connection.rollback();
             console.error('Error creating quote:', error);
             throw new Error('Failed to create quote in database');
@@ -154,6 +162,10 @@ export class QuoteRepository {
             if (quoteData.discount !== undefined) {
                 updates.push('discount = ?');
                 values.push(quoteData.discount);
+            }
+            if (quoteData.discount_type !== undefined) {
+                updates.push('discount_type = ?');
+                values.push(quoteData.discount_type);
             }
             if (quoteData.total !== undefined) {
                 updates.push('total = ?');
@@ -232,25 +244,104 @@ export class QuoteRepository {
                 throw new Error('Original quote not found');
             }
             const originalLines = await this.getQuoteLines(id);
-            const [quoteResult] = await connection.execute(`INSERT INTO quotes (
-          company_id, quote_number, project_name, customer_name, customer_email, 
-          customer_mobile, tier, status, subtotal, tax, discount, total
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
-                originalQuote.company_id,
-                newQuoteNumber,
-                originalQuote.project_name,
-                originalQuote.customer_name,
-                originalQuote.customer_email,
-                originalQuote.customer_mobile,
-                newTier || originalQuote.tier,
-                'draft',
-                originalQuote.subtotal,
-                originalQuote.tax,
-                originalQuote.discount,
-                originalQuote.total
-            ]);
+            let newSubtotal = originalQuote.subtotal || 0;
+            let newTotal = originalQuote.total || 0;
+            let adjustedLines = [...originalLines];
+            if (newTier && newTier !== originalQuote.tier) {
+                console.log(`Recalculating prices for tier change: ${originalQuote.tier} → ${newTier}`);
+                newSubtotal = 0;
+                adjustedLines = [];
+                for (const line of originalLines) {
+                    if (line.item_id) {
+                        const [itemRows] = await connection.execute('SELECT * FROM items WHERE id = ?', [line.item_id]);
+                        if (itemRows.length > 0) {
+                            const item = itemRows[0];
+                            let newUnitRate = line.unit_rate;
+                            if (item && newTier === 'luxury') {
+                                newUnitRate = item['luxury_unit_cost'] || item['unit_cost'] || line.unit_rate;
+                            }
+                            else if (item && newTier === 'economy') {
+                                newUnitRate = item['economy_unit_cost'] || item['unit_cost'] || line.unit_rate;
+                            }
+                            const areaMultiplier = line.area && line.area > 0 ? line.area : 1;
+                            const newLineTotal = Math.round((line.quantity || 1) * (newUnitRate || 0) * areaMultiplier * 100) / 100;
+                            adjustedLines.push({
+                                ...line,
+                                unit_rate: newUnitRate || 0,
+                                line_total: newLineTotal
+                            });
+                            newSubtotal += newLineTotal;
+                            console.log(`Item ${item ? item['name'] : 'Unknown'}: ${line.unit_rate} → ${newUnitRate} (${line.line_total} → ${newLineTotal})`);
+                        }
+                        else {
+                            adjustedLines.push(line);
+                            newSubtotal += line.line_total || 0;
+                        }
+                    }
+                    else {
+                        adjustedLines.push(line);
+                        newSubtotal += line.line_total || 0;
+                    }
+                }
+                const tax = originalQuote.tax || 0;
+                const discount = originalQuote.discount || 0;
+                newTotal = Math.round((newSubtotal + tax - discount) * 100) / 100;
+                newSubtotal = Math.round(newSubtotal * 100) / 100;
+                console.log(`Total recalculated: ${originalQuote.total} → ${newTotal} (subtotal: ${newSubtotal})`);
+            }
+            let includeDiscountType = false;
+            try {
+                const testQuery = 'SELECT discount_type FROM quotes WHERE id = ? LIMIT 1';
+                await connection.execute(testQuery, [id]);
+                includeDiscountType = true;
+                console.log('discount_type column exists, including in INSERT');
+            }
+            catch (e) {
+                console.log('discount_type column does not exist, excluding from INSERT');
+                includeDiscountType = false;
+            }
+            let quoteResult;
+            if (includeDiscountType) {
+                [quoteResult] = await connection.execute(`INSERT INTO quotes (
+            company_id, quote_number, project_name, customer_name, customer_email, 
+            customer_mobile, tier, status, subtotal, tax, discount, discount_type, total
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+                    originalQuote.company_id,
+                    newQuoteNumber,
+                    originalQuote.project_name,
+                    originalQuote.customer_name,
+                    originalQuote.customer_email,
+                    originalQuote.customer_mobile,
+                    newTier || originalQuote.tier,
+                    'draft',
+                    newSubtotal,
+                    originalQuote.tax,
+                    originalQuote.discount,
+                    originalQuote.discount_type || 'fixed',
+                    newTotal
+                ]);
+            }
+            else {
+                [quoteResult] = await connection.execute(`INSERT INTO quotes (
+            company_id, quote_number, project_name, customer_name, customer_email, 
+            customer_mobile, tier, status, subtotal, tax, discount, total
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+                    originalQuote.company_id,
+                    newQuoteNumber,
+                    originalQuote.project_name,
+                    originalQuote.customer_name,
+                    originalQuote.customer_email,
+                    originalQuote.customer_mobile,
+                    newTier || originalQuote.tier,
+                    'draft',
+                    newSubtotal,
+                    originalQuote.tax,
+                    originalQuote.discount,
+                    newTotal
+                ]);
+            }
             const newQuoteId = quoteResult.insertId;
-            for (const line of originalLines) {
+            for (const line of adjustedLines) {
                 await connection.execute(`INSERT INTO quote_lines (
             quote_id, item_id, description, unit, quantity, area, unit_rate, line_total
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
@@ -270,7 +361,28 @@ export class QuoteRepository {
         catch (error) {
             await connection.rollback();
             console.error('Error duplicating quote:', error);
-            throw new Error('Failed to duplicate quote in database');
+            console.error('Error details:', {
+                message: error instanceof Error ? error.message : 'Unknown error',
+                code: error?.code,
+                errno: error?.errno,
+                sqlState: error?.sqlState,
+                sqlMessage: error?.sqlMessage
+            });
+            throw error;
+        }
+    }
+    async findByCompanyAndQuoteNumber(companyId, quoteNumber) {
+        try {
+            const connection = this.getDbConnection();
+            const [rows] = await connection.execute('SELECT * FROM quotes WHERE company_id = ? AND quote_number = ? LIMIT 1', [companyId, quoteNumber]);
+            if (rows.length === 0) {
+                return null;
+            }
+            return rows[0];
+        }
+        catch (error) {
+            console.error('Error finding quote by company and quote number:', error);
+            throw new Error('Failed to find quote by company and quote number in database');
         }
     }
     async updateStatus(id, status) {
