@@ -32,7 +32,7 @@ export const authenticateToken = async (req, res, next) => {
             email: user.email,
             cognitoId: user.cognito_id,
             isApproved: user.is_approved,
-            isSuperUser: user.is_admin,
+            isSuperUser: user.is_super_user,
             company_id: user.company_id
         };
         next();

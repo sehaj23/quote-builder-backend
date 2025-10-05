@@ -184,7 +184,6 @@ export interface User {
   isApproved?: boolean;
   isSuperUser?: boolean;
   is_super_user?: boolean;
-  is_admin?: boolean;
   is_approved?: boolean;
   cognito_id?: string;
   company_id?: number;

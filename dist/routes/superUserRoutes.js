@@ -1,0 +1,24 @@
+import { Router } from 'express';
+import { SuperUserController } from '../controllers/SuperUserController.js';
+import { SuperUserService } from '../services/SuperUserService.js';
+import { UserRepository } from '../repositories/UserRepository.js';
+import { ActivityService } from '../services/ActivityService.js';
+import { ActivityRepository } from '../repositories/ActivityRepository.js';
+import { authenticateToken, requireSuperUser } from '../middleware/auth.js';
+const router = Router({ mergeParams: true });
+const userRepository = new UserRepository();
+const activityRepository = new ActivityRepository();
+const superUserService = new SuperUserService(userRepository);
+const activityService = new ActivityService(activityRepository);
+const superUserController = new SuperUserController(superUserService, activityService);
+router.get('/', authenticateToken, requireSuperUser, superUserController.getUsersByCompany.bind(superUserController));
+router.post('/', authenticateToken, requireSuperUser, superUserController.createUserForCompany.bind(superUserController));
+router.get('/stats', authenticateToken, requireSuperUser, superUserController.getCompanyUserStats.bind(superUserController));
+router.put('/:userId', authenticateToken, requireSuperUser, superUserController.updateUserInCompany.bind(superUserController));
+router.delete('/:userId', authenticateToken, requireSuperUser, superUserController.removeUserFromCompany.bind(superUserController));
+export const individualSuperUserRouter = Router();
+individualSuperUserRouter.get('/', authenticateToken, requireSuperUser, superUserController.getAllUsers.bind(superUserController));
+individualSuperUserRouter.get('/stats', authenticateToken, requireSuperUser, superUserController.getUserStats.bind(superUserController));
+individualSuperUserRouter.get('/:userId', authenticateToken, requireSuperUser, superUserController.getUserById.bind(superUserController));
+export default router;
+//# sourceMappingURL=superUserRoutes.js.map

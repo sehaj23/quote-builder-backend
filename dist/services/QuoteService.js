@@ -57,8 +57,10 @@ export class QuoteService {
             throw new Error('Page and pageSize must be positive integers');
         }
         const offset = (page - 1) * pageSize;
-        const quotes = await this.quoteRepository.findByCompanyIdPaginated(companyId, pageSize, offset, filters);
-        const totalCount = await this.quoteRepository.countByCompanyId(companyId, filters);
+        const [quotes, totalCount] = await Promise.all([
+            this.quoteRepository.findByCompanyIdPaginated(companyId, pageSize, offset, filters),
+            this.quoteRepository.countByCompanyId(companyId, filters)
+        ]);
         return {
             quotes,
             totalCount

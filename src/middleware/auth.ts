@@ -42,7 +42,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
       email: user.email,
       cognitoId: user.cognito_id,
       isApproved: user.is_approved,
-      isSuperUser: user.is_admin,
+      isSuperUser: user.is_super_user,
       company_id: user.company_id
     };
 

@@ -17,8 +17,10 @@ export class ItemService {
             throw new Error('Page and pageSize must be positive integers');
         }
         const offset = (page - 1) * pageSize;
-        const items = await this.itemRepository.findByCompanyIdPaginated(companyId, pageSize, offset, filters);
-        const totalCount = await this.itemRepository.countByCompanyId(companyId, filters);
+        const [items, totalCount] = await Promise.all([
+            this.itemRepository.findByCompanyIdPaginated(companyId, pageSize, offset, filters),
+            this.itemRepository.countByCompanyId(companyId, filters)
+        ]);
         return {
             items,
             totalCount

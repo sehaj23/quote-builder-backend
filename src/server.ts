@@ -13,6 +13,7 @@ import companyRoutes from './routes/companyRoutes.js';
 import itemRoutes, { individualItemRouter, categoryRouter } from './routes/itemRoutes.js';
 import quoteRoutes, { individualQuoteRouter } from './routes/quoteRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import superUserRoutes, { individualSuperUserRouter } from './routes/superUserRoutes.js';
 import attachmentRoutes, { individualAttachmentRouter } from './routes/attachmentRoutes.js';
 import activityRoutes from './routes/activityRoutes.js';
 import authRoutes from './routes/authRoutes.js';
@@ -99,6 +100,10 @@ app.use('/api/quotes', individualQuoteRouter);
 
 // User routes
 app.use('/api/users', userRoutes);
+
+// Super User routes - company-scoped and individual admin routes
+app.use('/api/companies/:companyId/users', superUserRoutes);
+app.use('/api/admin/users', individualSuperUserRouter);
 
 // Attachment routes - nested under companies and as individual routes
 app.use('/api/companies', attachmentRoutes);

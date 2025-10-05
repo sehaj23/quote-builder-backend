@@ -279,6 +279,7 @@ export class QuoteRepository {
         try {
             const connection = this.getDbConnection();
             const searchTerm = `%${query}%`;
+            console.log('Search term:', searchTerm);
             const [rows] = await connection.execute(`SELECT * FROM quotes 
          WHERE company_id = ? 
          AND (quote_number LIKE ? OR customer_name LIKE ? OR project_name LIKE ?)
