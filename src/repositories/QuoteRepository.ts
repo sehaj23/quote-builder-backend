@@ -67,7 +67,6 @@ export class QuoteRepository {
       // Use string interpolation for LIMIT/OFFSET instead of prepared statements
       // This avoids MySQL parameter binding issues with LIMIT/OFFSET
       query += ` ORDER BY created_at DESC LIMIT ${limitInt} OFFSET ${offsetInt}`;
-      
 
       const [rows] = await connection.execute<RowDataPacket[]>(query, params);
       return rows as Quote[];
@@ -104,7 +103,6 @@ export class QuoteRepository {
         query += ' AND tier = ?';
         params.push(filters.tier.trim());
       }
-
       const [rows] = await connection.execute<RowDataPacket[]>(query, params);
       return (rows as any[])[0]?.count || 0;
     } catch (error) {
@@ -376,13 +374,14 @@ export class QuoteRepository {
     try {
       const connection = this.getDbConnection();
       const searchTerm = `%${query}%`;
+      console.log('Search term:', searchTerm);
       const [rows] = await connection.execute<RowDataPacket[]>(
         `SELECT * FROM quotes 
          WHERE company_id = ? 
          AND (quote_number LIKE ? OR customer_name LIKE ? OR project_name LIKE ?)
          ORDER BY created_at DESC`,
         [companyId, searchTerm, searchTerm, searchTerm]
-      );
+      ); 
       return rows as Quote[];
     } catch (error) {
       console.error('Error searching quotes:', error);
