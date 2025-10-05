@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { QuoteController } from '@/controllers/QuoteController';
-import { QuoteService } from '@/services/QuoteService';
-import { QuoteRepository } from '@/repositories/QuoteRepository';
-import { authenticateToken } from '@/middleware/auth.js';
+import { QuoteController } from '../controllers/QuoteController.js';
+import { QuoteService } from '../services/QuoteService.js';
+import { QuoteRepository } from '../repositories/QuoteRepository.js';
+import { authenticateToken } from '../middleware/auth.js';
 const router = Router({ mergeParams: true });
 const quoteRepository = new QuoteRepository();
 const quoteService = new QuoteService(quoteRepository);

@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { AttachmentController } from '@/controllers/AttachmentController.js';
-import { AttachmentService } from '@/services/AttachmentService.js';
-import { ActivityService } from '@/services/ActivityService.js';
-import { AttachmentRepository } from '@/repositories/AttachmentRepository.js';
-import { ActivityRepository } from '@/repositories/ActivityRepository.js';
-import { authenticateToken } from '@/middleware/auth.js';
+import { AttachmentController } from '../controllers/AttachmentController.js';
+import { AttachmentService } from '../services/AttachmentService.js';
+import { ActivityService } from '../services/ActivityService.js';
+import { AttachmentRepository } from '../repositories/AttachmentRepository.js';
+import { ActivityRepository } from '../repositories/ActivityRepository.js';
+import { authenticateToken } from '../middleware/auth.js';
 const router = Router();
 const attachmentRepository = new AttachmentRepository();
 const activityRepository = new ActivityRepository();

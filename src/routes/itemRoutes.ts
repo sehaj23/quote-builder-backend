@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { ItemController } from '@/controllers/ItemController.js';
-import { ItemService } from '@/services/ItemService.js';
-import { ItemRepository } from '@/repositories/ItemRepository.js';
-import { authenticateToken } from '@/middleware/auth.js';
+import { ItemController } from '../controllers/ItemController.js';
+import { ItemService } from '../services/ItemService.js';
+import { ItemRepository } from '../repositories/ItemRepository.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router({ mergeParams: true });
 

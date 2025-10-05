@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { ActivityController } from '@/controllers/ActivityController.js';
-import { ActivityService } from '@/services/ActivityService.js';
-import { ActivityRepository } from '@/repositories/ActivityRepository.js';
-import { authenticateToken } from '@/middleware/auth.js';
+import { ActivityController } from '../controllers/ActivityController.js';
+import { ActivityService } from '../services/ActivityService.js';
+import { ActivityRepository } from '../repositories/ActivityRepository.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 

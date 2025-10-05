@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { CompanyController } from '@/controllers/CompanyController.js';
-import { CompanyService } from '@/services/CompanyService.js';
-import { CompanyRepository } from '@/repositories/CompanyRepository.js';
-import { QuoteRepository } from '@/repositories/QuoteRepository.js';
-import { authenticateToken, requireApproved, requireCompanyAccess } from '@/middleware/auth.js';
+import { CompanyController } from '../controllers/CompanyController.js';
+import { CompanyService } from '../services/CompanyService.js';
+import { CompanyRepository } from '../repositories/CompanyRepository.js';
+import { QuoteRepository } from '../repositories/QuoteRepository.js';
+import { authenticateToken, requireApproved, requireCompanyAccess } from '../middleware/auth.js';
 
 const router = Router();
 
