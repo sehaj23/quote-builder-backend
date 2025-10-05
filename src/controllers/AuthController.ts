@@ -6,7 +6,7 @@ import crypto from 'crypto';
 import { UserService } from '../services/UserService.js';
 import { CompanyService } from '../services/CompanyService.js';
 import { CompanyRepository } from '../repositories/CompanyRepository.js';
-import { QuoteRepository } from '@/repositories/QuoteRepository.js';
+import { QuoteRepository } from '../repositories/QuoteRepository.js';
 
 const cognitoClient = new CognitoIdentityProviderClient({
   region: process.env.AWS_REGION || 'ap-southeast-2',

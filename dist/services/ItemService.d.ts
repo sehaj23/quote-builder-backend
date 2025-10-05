@@ -1,5 +1,5 @@
-import { Item, CreateItemRequest, UpdateItemRequest } from '@/types/index.js';
-import { ItemRepository } from '@/repositories/ItemRepository.js';
+import { Item, CreateItemRequest, UpdateItemRequest } from '../types/index.js';
+import { ItemRepository } from '../repositories/ItemRepository.js';
 export declare class ItemService {
     private itemRepository;
     constructor(itemRepository: ItemRepository);

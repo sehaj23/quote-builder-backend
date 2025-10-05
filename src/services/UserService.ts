@@ -1,5 +1,5 @@
-import { UserRepository } from '@/repositories/UserRepository.js';
-import { User, CreateUserRequest, UpdateUserRequest } from '@/types/index.js';
+import { UserRepository } from '../repositories/UserRepository.js';
+import { User, CreateUserRequest, UpdateUserRequest } from '../types/index.js';
 
 const userRepository = new UserRepository();
 

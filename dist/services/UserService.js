@@ -1,4 +1,4 @@
-import { UserRepository } from '@/repositories/UserRepository.js';
+import { UserRepository } from '../repositories/UserRepository.js';
 const userRepository = new UserRepository();
 export class UserService {
     static async getAllUsers() {

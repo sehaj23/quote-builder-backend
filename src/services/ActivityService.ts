@@ -1,5 +1,5 @@
-import { ActivityRepository } from '@/repositories/ActivityRepository.js';
-import { UserActivity, CreateActivityRequest } from '@/types/index.js';
+import { ActivityRepository } from '../repositories/ActivityRepository.js';
+import { UserActivity, CreateActivityRequest } from '../types/index.js';
 
 export class ActivityService {
   constructor(private activityRepository: ActivityRepository) {}

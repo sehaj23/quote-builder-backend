@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { CompanyService } from '@/services/CompanyService.js';
-import { ApiResponse, CreateCompanyRequest, UpdateCompanyRequest } from '@/types/index.js';
+import { CompanyService } from '../services/CompanyService.js';
+import { ApiResponse, CreateCompanyRequest, UpdateCompanyRequest } from '../types/index.js';
 
 export class CompanyController {
   constructor(private companyService: CompanyService) {}

@@ -1,5 +1,5 @@
-import { getConnection } from '@/config/database.js';
-import { UserActivity, CreateActivityRequest } from '@/types/index.js';
+import { getConnection } from '../config/database.js';
+import { UserActivity, CreateActivityRequest } from '../types/index.js';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 interface FindActivitiesOptions {

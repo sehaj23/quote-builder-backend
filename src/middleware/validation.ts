@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { body, param, validationResult } from 'express-validator';
-import { ApiResponse } from '@/types/index.js';
+import { ApiResponse } from '../types/index.js';
 
 // Validation result handler
 export const handleValidationErrors = (

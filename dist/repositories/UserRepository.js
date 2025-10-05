@@ -1,4 +1,4 @@
-import { getConnection } from '@/config/database.js';
+import { getConnection } from '../config/database.js';
 export class UserRepository {
     async findAll() {
         const connection = getConnection();

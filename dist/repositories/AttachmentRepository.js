@@ -1,4 +1,4 @@
-import { getConnection } from '@/config/database.js';
+import { getConnection } from '../config/database.js';
 export class AttachmentRepository {
     async create(attachmentData) {
         const connection = getConnection();

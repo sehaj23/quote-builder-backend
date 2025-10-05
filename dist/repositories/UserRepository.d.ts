@@ -1,4 +1,4 @@
-import { User, CreateUserRequest, UpdateUserRequest } from '@/types/index.js';
+import { User, CreateUserRequest, UpdateUserRequest } from '../types/index.js';
 export declare class UserRepository {
     findAll(): Promise<User[]>;
     findById(id: string): Promise<User | null>;

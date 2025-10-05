@@ -1,4 +1,4 @@
-import { UserActivity, CreateActivityRequest } from '@/types/index.js';
+import { UserActivity, CreateActivityRequest } from '../types/index.js';
 interface FindActivitiesOptions {
     userId?: string;
     companyId?: number;

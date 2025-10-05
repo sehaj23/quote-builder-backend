@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ApiResponse } from '@/types/index.js';
+import { ApiResponse } from '../types/index.js';
 
 // Global error handler middleware
 export const errorHandler = (

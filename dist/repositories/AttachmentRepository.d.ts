@@ -1,4 +1,4 @@
-import { Attachment, CreateAttachmentRequest } from '@/types/index.js';
+import { Attachment, CreateAttachmentRequest } from '../types/index.js';
 export declare class AttachmentRepository {
     create(attachmentData: CreateAttachmentRequest): Promise<Attachment>;
     findById(id: number): Promise<Attachment | null>;

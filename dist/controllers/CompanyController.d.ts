@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { CompanyService } from '@/services/CompanyService.js';
+import { CompanyService } from '../services/CompanyService.js';
 export declare class CompanyController {
     private companyService;
     constructor(companyService: CompanyService);

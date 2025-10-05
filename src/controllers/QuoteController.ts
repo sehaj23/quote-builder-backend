@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { QuoteService } from '@/services/QuoteService.js';
-import { CreateQuoteRequest, UpdateQuoteRequest, ApiResponse } from '@/types/index.js';
+import { QuoteService } from '../services/QuoteService.js';
+import { CreateQuoteRequest, UpdateQuoteRequest, ApiResponse } from '../types/index.js';
 
 export class QuoteController {
   constructor(private quoteService: QuoteService) {}

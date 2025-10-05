@@ -1,4 +1,4 @@
-import { User, CreateUserRequest, UpdateUserRequest } from '@/types/index.js';
+import { User, CreateUserRequest, UpdateUserRequest } from '../types/index.js';
 export declare class UserService {
     static getAllUsers(): Promise<User[]>;
     static getUserById(id: string): Promise<User | null>;

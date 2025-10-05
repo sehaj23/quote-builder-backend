@@ -1,6 +1,6 @@
-import { CompanyRepository } from '@/repositories/CompanyRepository.js';
-import { QuoteRepository } from '@/repositories/QuoteRepository.js';
-import { Company, CreateCompanyRequest, UpdateCompanyRequest } from '@/types/index.js';
+import { CompanyRepository } from '../repositories/CompanyRepository.js';
+import { QuoteRepository } from '../repositories/QuoteRepository.js';
+import { Company, CreateCompanyRequest, UpdateCompanyRequest } from '../types/index.js';
 export declare class CompanyService {
     private companyRepository;
     private quoteRepository;

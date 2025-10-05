@@ -1,5 +1,5 @@
-import { Quote, QuoteWithLines, CreateQuoteRequest, UpdateQuoteRequest } from '@/types/index.js';
-import { QuoteRepository } from '@/repositories/QuoteRepository.js';
+import { Quote, QuoteWithLines, CreateQuoteRequest, UpdateQuoteRequest } from '../types/index.js';
+import { QuoteRepository } from '../repositories/QuoteRepository.js';
 export declare class QuoteService {
     private quoteRepository;
     constructor(quoteRepository: QuoteRepository);

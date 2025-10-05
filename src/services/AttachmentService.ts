@@ -1,5 +1,5 @@
-import { AttachmentRepository } from '@/repositories/AttachmentRepository.js';
-import { Attachment, CreateAttachmentRequest } from '@/types/index.js';
+import { AttachmentRepository } from '../repositories/AttachmentRepository.js';
+import { Attachment, CreateAttachmentRequest } from '../types/index.js';
 
 export class AttachmentService {
   constructor(private attachmentRepository: AttachmentRepository) {}

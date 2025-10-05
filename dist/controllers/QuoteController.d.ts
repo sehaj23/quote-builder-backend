@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { QuoteService } from '@/services/QuoteService.js';
+import { QuoteService } from '../services/QuoteService.js';
 export declare class QuoteController {
     private quoteService;
     constructor(quoteService: QuoteService);
