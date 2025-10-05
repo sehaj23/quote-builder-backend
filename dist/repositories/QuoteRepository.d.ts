@@ -1,4 +1,4 @@
-import { Quote, QuoteLine, QuoteWithLines, CreateQuoteRequest, UpdateQuoteRequest } from '@/types/index.js';
+import { Quote, QuoteLine, QuoteWithLines, CreateQuoteRequest, UpdateQuoteRequest } from '../types/index.js';
 export declare class QuoteRepository {
     private getDbConnection;
     findByCompanyId(companyId: number, limit?: number, offset?: number): Promise<Quote[]>;

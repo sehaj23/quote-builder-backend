@@ -1,4 +1,4 @@
-import { Company, CreateCompanyRequest, UpdateCompanyRequest } from '@/types/index.js';
+import { Company, CreateCompanyRequest, UpdateCompanyRequest } from '../types/index.js';
 export declare class CompanyRepository {
     private getDbConnection;
     findAll(): Promise<Company[]>;

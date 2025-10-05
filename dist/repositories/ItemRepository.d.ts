@@ -1,4 +1,4 @@
-import { Item, CreateItemRequest, UpdateItemRequest } from '@/types/index.js';
+import { Item, CreateItemRequest, UpdateItemRequest } from '../types/index.js';
 export declare class ItemRepository {
     private getDbConnection;
     findByCompanyId(companyId: number): Promise<Item[]>;

@@ -1,6 +1,6 @@
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
-import { getConnection } from '@/config/database.js';
-import { Item, CreateItemRequest, UpdateItemRequest } from '@/types/index.js';
+import { getConnection } from '../config/database.js';
+import { Item, CreateItemRequest, UpdateItemRequest } from '../types/index.js';
 
 export class ItemRepository {
   private getDbConnection() {

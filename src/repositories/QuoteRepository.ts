@@ -1,6 +1,6 @@
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
-import { getConnection } from '@/config/database.js';
-import { Quote, QuoteLine, QuoteWithLines, CreateQuoteRequest, UpdateQuoteRequest } from '@/types/index.js';
+import { getConnection } from '../config/database.js';
+import { Quote, QuoteLine, QuoteWithLines, CreateQuoteRequest, UpdateQuoteRequest } from '../types/index.js';
 
 export class QuoteRepository {
   private getDbConnection() {
