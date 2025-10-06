@@ -302,7 +302,7 @@ export class QuoteService {
         }
         if (quoteData.discount !== undefined) {
             const finalDiscount = quoteData.discount;
-            if (finalDiscount) {
+            if (finalDiscount !== undefined) {
                 sanitizedData.discount = finalDiscount;
             }
         }

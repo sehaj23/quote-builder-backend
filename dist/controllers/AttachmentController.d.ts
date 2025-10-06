@@ -10,6 +10,9 @@ export declare class AttachmentController {
     private s3Client;
     private bucketName;
     constructor(attachmentService: AttachmentService, activityService: ActivityService);
+    private validateAndNormalizeBucketName;
+    private isValidBucketName;
+    private ensureBucketExists;
     getUploadMiddleware(): import("express").RequestHandler<import("express-serve-static-core").ParamsDictionary, any, any, import("qs").ParsedQs, Record<string, any>>;
     uploadFile(req: MulterRequest, res: Response): Promise<Response<any, Record<string, any>>>;
     getAttachments(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
