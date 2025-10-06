@@ -300,9 +300,9 @@ export class QuoteService {
                 sanitizedData.tax = finalTax;
             }
         }
-        if (quoteData.discount !== undefined || calculatedDiscount !== undefined) {
-            const finalDiscount = calculatedDiscount ?? quoteData.discount;
-            if (finalDiscount !== undefined) {
+        if (quoteData.discount !== undefined) {
+            const finalDiscount = quoteData.discount;
+            if (finalDiscount) {
                 sanitizedData.discount = finalDiscount;
             }
         }
