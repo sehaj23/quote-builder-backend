@@ -13,5 +13,6 @@ export declare class SuperUserController {
     getAllUsers(_req: Request, res: Response): Promise<Response>;
     getUserStats(_req: Request, res: Response): Promise<Response>;
     getCompanyUserStats(req: Request, res: Response): Promise<Response>;
+    getCompanyUsersActivity(req: Request, res: Response): Promise<Response>;
 }
 //# sourceMappingURL=SuperUserController.d.ts.map

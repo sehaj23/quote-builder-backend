@@ -134,9 +134,10 @@ export class CompanyController {
         res.status(400).json(response);
         return;
       }
+      console.log(companyData);
 
       const updatedCompany = await this.companyService.updateCompany(id, companyData);
-      
+      console.log("updatedCompany", updatedCompany);
       const response: ApiResponse = {
         success: true,
         data: updatedCompany,

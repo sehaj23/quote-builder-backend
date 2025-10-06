@@ -135,6 +135,16 @@ export class CompanyService {
                     sanitizedData.currency = companyData.currency.trim().toUpperCase();
                 }
             }
+            if (companyData.default_tax !== undefined) {
+                if (companyData.default_tax) {
+                    sanitizedData.default_tax = companyData.default_tax;
+                }
+            }
+            if (companyData.quote_prefix !== undefined) {
+                if (companyData.quote_prefix?.trim()) {
+                    sanitizedData.quote_prefix = companyData.quote_prefix.trim();
+                }
+            }
             const updated = await this.companyRepository.update(id, sanitizedData);
             if (!updated) {
                 throw new Error('Failed to update company');

@@ -33,4 +33,8 @@ individualSuperUserRouter.get('/', authenticateToken, requireSuperUser, superUse
 individualSuperUserRouter.get('/stats', authenticateToken, requireSuperUser, superUserController.getUserStats.bind(superUserController));  // GET /api/admin/users/stats  
 individualSuperUserRouter.get('/:userId', authenticateToken, requireSuperUser, superUserController.getUserById.bind(superUserController));  // GET /api/admin/users/:userId
 
+// Activity routes
+export const activityRouter = Router();
+activityRouter.get('/company-users/activity', authenticateToken, requireSuperUser, superUserController.getCompanyUsersActivity.bind(superUserController));  // GET /api/admin/company-users/activity
+
 export default router;

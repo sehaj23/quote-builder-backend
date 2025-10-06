@@ -100,12 +100,12 @@ export class ActivityRepository {
     query += ' ORDER BY ua.created_at DESC';
     
     if (options.limit) {
-      query += ' LIMIT ?';
-      params.push(options.limit);
-      
-      if (options.offset) {
-        query += ' OFFSET ?';
-        params.push(options.offset);
+      if (options.offset && options.offset > 0) {
+        query += ' LIMIT ? OFFSET ?';
+        params.push(options.limit, options.offset);
+      } else {
+        query += ' LIMIT ?';
+        params.push(options.limit);
       }
     }
     

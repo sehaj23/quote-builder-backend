@@ -155,8 +155,22 @@ export class QuoteService {
     // Use provided totals or calculate from line items
     const calculatedSubtotal = quoteData.subtotal || calculateTotalsFromLines(quoteData.lines || []);
     const calculatedTax = quoteData.tax || 0;
-    const calculatedDiscount = quoteData.discount || 0;
-    const calculatedTotal = calculatedSubtotal + calculatedTax - calculatedDiscount;
+    const discountAmount = parseFloat(quoteData.discount?.toString() || '0') || 0;
+    const discountType = quoteData.discount_type || 'fixed';
+    
+    // Calculate discount based on type
+    let calculatedDiscount = 0;
+    if (discountAmount > 0) {
+      if (discountType === 'percentage') {
+        // For percentage, calculate discount as percentage of subtotal
+        calculatedDiscount = (calculatedSubtotal * discountAmount) / 100;
+      } else {
+        // For fixed, use the discount amount directly
+        calculatedDiscount = discountAmount;
+      }
+    }
+    
+    const calculatedTotal = parseFloat(calculatedSubtotal?.toString() || '0') + parseFloat(calculatedTax?.toString() || '0') - calculatedDiscount;
 
     // Sanitize input data
     const sanitizedData: CreateQuoteRequest = {
@@ -166,7 +180,8 @@ export class QuoteService {
       status: quoteData.status || 'draft',
       subtotal: calculatedSubtotal,
       tax: calculatedTax,
-      discount: calculatedDiscount,
+      discount: discountAmount, // Store the original discount amount, not the calculated discount
+      discount_type: discountType,
       total: calculatedTotal,
       lines: quoteData.lines || []
     };
@@ -268,7 +283,20 @@ export class QuoteService {
 
       calculatedSubtotal = quoteData.subtotal ?? calculateTotalsFromLines(quoteData.lines);
       calculatedTax = quoteData.tax ?? 0;
-      calculatedDiscount = quoteData.discount ?? 0;
+      const discountAmount = quoteData.discount ?? 0;
+      const discountType = quoteData.discount_type ?? 'fixed';
+      
+      // Calculate discount based on type
+      if (discountAmount > 0) {
+        if (discountType === 'percentage') {
+          calculatedDiscount = (calculatedSubtotal * discountAmount) / 100;
+        } else {
+          calculatedDiscount = discountAmount;
+        }
+      } else {
+        calculatedDiscount = 0;
+      }
+      
       calculatedTotal = calculatedSubtotal + calculatedTax - calculatedDiscount;
     } else {
       // If no lines are being updated, but we have subtotal/tax/discount changes, recalculate total
@@ -278,8 +306,20 @@ export class QuoteService {
         if (currentQuote) {
           const subtotal = quoteData.subtotal !== undefined ? quoteData.subtotal : parseFloat(currentQuote.subtotal?.toString() || '0');
           const tax = quoteData.tax !== undefined ? quoteData.tax : parseFloat(currentQuote.tax?.toString() || '0');
-          const discount = quoteData.discount !== undefined ? quoteData.discount : parseFloat(currentQuote.discount?.toString() || '0');
-          calculatedTotal = subtotal + tax - discount;
+          const discountAmount = quoteData.discount !== undefined ? quoteData.discount : parseFloat(currentQuote.discount?.toString() || '0');
+          const discountType = quoteData.discount_type !== undefined ? quoteData.discount_type : (currentQuote.discount_type || 'fixed');
+          
+          // Calculate discount based on type
+          let actualDiscount = 0;
+          if (discountAmount > 0) {
+            if (discountType === 'percentage') {
+              actualDiscount = (subtotal * discountAmount) / 100;
+            } else {
+              actualDiscount = discountAmount;
+            }
+          }
+          
+          calculatedTotal = subtotal + tax - actualDiscount;
         }
       }
     }
@@ -328,9 +368,9 @@ export class QuoteService {
         sanitizedData.tax = finalTax;
       }
     }
-    if (quoteData.discount !== undefined || calculatedDiscount !== undefined) {
-      const finalDiscount = calculatedDiscount ?? quoteData.discount;
-      if (finalDiscount !== undefined) {
+    if (quoteData.discount !== undefined ) {
+      const finalDiscount = quoteData.discount;
+      if (finalDiscount) {
         sanitizedData.discount = finalDiscount;
       }
     }
@@ -342,6 +382,9 @@ export class QuoteService {
     }
     if (quoteData.lines !== undefined) {
       sanitizedData.lines = quoteData.lines;
+    }
+    if (quoteData.discount_type !== undefined) {
+      sanitizedData.discount_type = quoteData.discount_type;
     }
 
     // Validate email format if provided

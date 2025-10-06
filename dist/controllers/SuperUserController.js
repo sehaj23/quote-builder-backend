@@ -326,5 +326,32 @@ export class SuperUserController {
             return res.status(500).json(response);
         }
     }
+    async getCompanyUsersActivity(req, res) {
+        try {
+            const userCompanyId = req.user?.company_id;
+            const limit = req.query.limit ? parseInt(req.query.limit) : 20;
+            if (!userCompanyId) {
+                const response = {
+                    success: false,
+                    error: 'Company ID not available from user context'
+                };
+                return res.status(400).json(response);
+            }
+            const activities = await this.activityService.getCompanyActivities(userCompanyId, limit);
+            const response = {
+                success: true,
+                data: activities,
+                message: 'Company user activities retrieved successfully'
+            };
+            return res.json(response);
+        }
+        catch (error) {
+            const response = {
+                success: false,
+                error: error.message
+            };
+            return res.status(500).json(response);
+        }
+    }
 }
 //# sourceMappingURL=SuperUserController.js.map

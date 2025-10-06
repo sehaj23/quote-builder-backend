@@ -20,5 +20,7 @@ export const individualSuperUserRouter = Router();
 individualSuperUserRouter.get('/', authenticateToken, requireSuperUser, superUserController.getAllUsers.bind(superUserController));
 individualSuperUserRouter.get('/stats', authenticateToken, requireSuperUser, superUserController.getUserStats.bind(superUserController));
 individualSuperUserRouter.get('/:userId', authenticateToken, requireSuperUser, superUserController.getUserById.bind(superUserController));
+export const activityRouter = Router();
+activityRouter.get('/company-users/activity', authenticateToken, requireSuperUser, superUserController.getCompanyUsersActivity.bind(superUserController));
 export default router;
 //# sourceMappingURL=superUserRoutes.js.map

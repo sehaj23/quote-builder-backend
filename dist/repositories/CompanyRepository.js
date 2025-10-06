@@ -70,20 +70,50 @@ export class CompanyRepository {
     async update(id, companyData) {
         try {
             const connection = this.getDbConnection();
-            const [result] = await connection.execute(`UPDATE companies 
-         SET name = ?, address = ?, email = ?, phone = ?, terms = ?, logo_path = ?, default_tax = ?, quote_prefix = ?, next_quote_number = ?
-         WHERE id = ?`, [
-                companyData.name,
-                companyData.address || null,
-                companyData.email || null,
-                companyData.phone || null,
-                companyData.terms || null,
-                companyData.logo_path || null,
-                companyData.default_tax ?? null,
-                companyData.quote_prefix ?? null,
-                companyData.next_quote_number ?? null,
-                id
-            ]);
+            const fields = [];
+            const values = [];
+            if (companyData.name !== undefined) {
+                fields.push('name = ?');
+                values.push(companyData.name);
+            }
+            if (companyData.address !== undefined) {
+                fields.push('address = ?');
+                values.push(companyData.address || null);
+            }
+            if (companyData.email !== undefined) {
+                fields.push('email = ?');
+                values.push(companyData.email || null);
+            }
+            if (companyData.phone !== undefined) {
+                fields.push('phone = ?');
+                values.push(companyData.phone || null);
+            }
+            if (companyData.terms !== undefined) {
+                fields.push('terms = ?');
+                values.push(companyData.terms || null);
+            }
+            if (companyData.logo_path !== undefined) {
+                fields.push('logo_path = ?');
+                values.push(companyData.logo_path || null);
+            }
+            if (companyData.default_tax !== undefined) {
+                fields.push('default_tax = ?');
+                values.push(companyData.default_tax ?? null);
+            }
+            if (companyData.quote_prefix !== undefined) {
+                fields.push('quote_prefix = ?');
+                values.push(companyData.quote_prefix ?? null);
+            }
+            if (companyData.next_quote_number !== undefined) {
+                fields.push('next_quote_number = ?');
+                values.push(companyData.next_quote_number ?? null);
+            }
+            if (fields.length === 0) {
+                return false;
+            }
+            fields.push('updated_at = CURRENT_TIMESTAMP');
+            values.push(id);
+            const [result] = await connection.execute(`UPDATE companies SET ${fields.join(', ')} WHERE id = ?`, values);
             return result.affectedRows > 0;
         }
         catch (error) {

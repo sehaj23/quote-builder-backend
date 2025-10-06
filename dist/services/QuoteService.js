@@ -117,8 +117,18 @@ export class QuoteService {
         };
         const calculatedSubtotal = quoteData.subtotal || calculateTotalsFromLines(quoteData.lines || []);
         const calculatedTax = quoteData.tax || 0;
-        const calculatedDiscount = quoteData.discount || 0;
-        const calculatedTotal = calculatedSubtotal + calculatedTax - calculatedDiscount;
+        const discountAmount = parseFloat(quoteData.discount?.toString() || '0') || 0;
+        const discountType = quoteData.discount_type || 'fixed';
+        let calculatedDiscount = 0;
+        if (discountAmount > 0) {
+            if (discountType === 'percentage') {
+                calculatedDiscount = (calculatedSubtotal * discountAmount) / 100;
+            }
+            else {
+                calculatedDiscount = discountAmount;
+            }
+        }
+        const calculatedTotal = parseFloat(calculatedSubtotal?.toString() || '0') + parseFloat(calculatedTax?.toString() || '0') - calculatedDiscount;
         const sanitizedData = {
             company_id: quoteData.company_id,
             quote_number: finalQuoteNumber,
@@ -126,7 +136,8 @@ export class QuoteService {
             status: quoteData.status || 'draft',
             subtotal: calculatedSubtotal,
             tax: calculatedTax,
-            discount: calculatedDiscount,
+            discount: discountAmount,
+            discount_type: discountType,
             total: calculatedTotal,
             lines: quoteData.lines || []
         };
@@ -211,7 +222,19 @@ export class QuoteService {
             };
             calculatedSubtotal = quoteData.subtotal ?? calculateTotalsFromLines(quoteData.lines);
             calculatedTax = quoteData.tax ?? 0;
-            calculatedDiscount = quoteData.discount ?? 0;
+            const discountAmount = quoteData.discount ?? 0;
+            const discountType = quoteData.discount_type ?? 'fixed';
+            if (discountAmount > 0) {
+                if (discountType === 'percentage') {
+                    calculatedDiscount = (calculatedSubtotal * discountAmount) / 100;
+                }
+                else {
+                    calculatedDiscount = discountAmount;
+                }
+            }
+            else {
+                calculatedDiscount = 0;
+            }
             calculatedTotal = calculatedSubtotal + calculatedTax - calculatedDiscount;
         }
         else {
@@ -220,8 +243,18 @@ export class QuoteService {
                 if (currentQuote) {
                     const subtotal = quoteData.subtotal !== undefined ? quoteData.subtotal : parseFloat(currentQuote.subtotal?.toString() || '0');
                     const tax = quoteData.tax !== undefined ? quoteData.tax : parseFloat(currentQuote.tax?.toString() || '0');
-                    const discount = quoteData.discount !== undefined ? quoteData.discount : parseFloat(currentQuote.discount?.toString() || '0');
-                    calculatedTotal = subtotal + tax - discount;
+                    const discountAmount = quoteData.discount !== undefined ? quoteData.discount : parseFloat(currentQuote.discount?.toString() || '0');
+                    const discountType = quoteData.discount_type !== undefined ? quoteData.discount_type : (currentQuote.discount_type || 'fixed');
+                    let actualDiscount = 0;
+                    if (discountAmount > 0) {
+                        if (discountType === 'percentage') {
+                            actualDiscount = (subtotal * discountAmount) / 100;
+                        }
+                        else {
+                            actualDiscount = discountAmount;
+                        }
+                    }
+                    calculatedTotal = subtotal + tax - actualDiscount;
                 }
             }
         }
@@ -281,6 +314,9 @@ export class QuoteService {
         }
         if (quoteData.lines !== undefined) {
             sanitizedData.lines = quoteData.lines;
+        }
+        if (quoteData.discount_type !== undefined) {
+            sanitizedData.discount_type = quoteData.discount_type;
         }
         if (sanitizedData.customer_email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

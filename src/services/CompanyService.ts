@@ -163,7 +163,19 @@ export class CompanyService {
           sanitizedData.currency = companyData.currency.trim().toUpperCase();
         }
       }
+      if (companyData.default_tax !== undefined) {
+        if (companyData.default_tax) {
+          sanitizedData.default_tax = companyData.default_tax;
+        }
+      }
+      if (companyData.quote_prefix !== undefined) {
+        if (companyData.quote_prefix?.trim()) {
+          sanitizedData.quote_prefix = companyData.quote_prefix.trim();
+        }
+      }
+      
 
+     
       // Update the company
       const updated = await this.companyRepository.update(id, sanitizedData);
       
