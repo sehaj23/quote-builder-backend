@@ -1,6 +1,6 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
-import { DatabaseConfig } from '@/types/index.js';
+import { DatabaseConfig } from '../types/index.js';
 
 dotenv.config();
 
@@ -15,15 +15,27 @@ export const dbConfig: DatabaseConfig = {
   timezone: '+00:00'
 };
 
-// Global connection variable
-let connection: mysql.Connection | null = null;
+// Connection pool configuration
+const poolConfig = {
+  ...dbConfig,
+  connectionLimit: 10,
+  acquireTimeout: 60000,
+  timeout: 60000,
+  reconnect: true,
+  idleTimeout: 300000,
+  maxReconnects: 3,
+  reconnectDelay: 2000,
+};
 
-// Initialize MySQL database connection
-export const initDatabase = async (): Promise<mysql.Connection> => {
-  if (connection) return connection;
+// Global connection pool
+let pool: mysql.Pool | null = null;
+
+// Initialize MySQL database connection pool
+export const initDatabase = async (): Promise<mysql.Pool> => {
+  if (pool) return pool;
   
   try {
-    console.log('🔄 Initializing database connection...');
+    console.log('🔄 Initializing database connection pool...');
     
     // First connect without database to create it if needed
     const tempConnection = await mysql.createConnection({
@@ -39,15 +51,15 @@ export const initDatabase = async (): Promise<mysql.Connection> => {
     console.log(`✅ Database '${dbConfig.database}' ensured to exist`);
     await tempConnection.end();
     
-    // Now connect to the specific database
-    connection = await mysql.createConnection(dbConfig);
-    console.log('✅ Connected to MySQL database');
+    // Create connection pool
+    pool = mysql.createPool(poolConfig);
+    console.log('✅ Connected to MySQL database with connection pool');
     
-    // Create tables
+    // Create tables using a connection from the pool
     await createTables();
     
     console.log('✅ MySQL database initialized successfully');
-    return connection;
+    return pool;
   } catch (error) {
     console.error('❌ Failed to initialize MySQL database:', error);
     throw error;
@@ -56,7 +68,9 @@ export const initDatabase = async (): Promise<mysql.Connection> => {
 
 // Create database tables
 const createTables = async (): Promise<void> => {
-  if (!connection) return;
+  if (!pool) return;
+  
+  const connection = await pool.getConnection();
 
   try {
     console.log('🔄 Creating database tables...');
@@ -404,36 +418,43 @@ const createTables = async (): Promise<void> => {
   } catch (error) {
     console.error('❌ Error creating database tables:', error);
     throw error;
+  } finally {
+    connection.release();
   }
 };
 
-// Get database connection
-export const getConnection = (): mysql.Connection => {
-  if (!connection) {
+// Get database connection pool
+export const getConnection = (): mysql.Pool => {
+  if (!pool) {
     throw new Error('Database not initialized. Call initDatabase() first.');
   }
-  return connection;
+  return pool;
 };
 
 // Test database connection
 export const testConnection = async (): Promise<boolean> => {
   try {
-    const conn = getConnection();
-    await conn.ping();
-    console.log('✅ Database connection is healthy');
-    return true;
+    const pool = getConnection();
+    const connection = await pool.getConnection();
+    try {
+      await connection.ping();
+      console.log('✅ Database connection is healthy');
+      return true;
+    } finally {
+      connection.release();
+    }
   } catch (error) {
     console.error('❌ Database connection test failed:', error);
     return false;
   }
 };
 
-// Close database connection
+// Close database connection pool
 export const closeConnection = async (): Promise<void> => {
-  if (connection) {
-    await connection.end();
-    connection = null;
-    console.log('✅ Database connection closed');
+  if (pool) {
+    await pool.end();
+    pool = null;
+    console.log('✅ Database connection pool closed');
   }
 };
 

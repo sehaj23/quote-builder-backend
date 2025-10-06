@@ -10,12 +10,22 @@ export const dbConfig = {
     charset: 'utf8mb4',
     timezone: '+00:00'
 };
-let connection = null;
+const poolConfig = {
+    ...dbConfig,
+    connectionLimit: 10,
+    acquireTimeout: 60000,
+    timeout: 60000,
+    reconnect: true,
+    idleTimeout: 300000,
+    maxReconnects: 3,
+    reconnectDelay: 2000,
+};
+let pool = null;
 export const initDatabase = async () => {
-    if (connection)
-        return connection;
+    if (pool)
+        return pool;
     try {
-        console.log('🔄 Initializing database connection...');
+        console.log('🔄 Initializing database connection pool...');
         const tempConnection = await mysql.createConnection({
             host: dbConfig.host,
             user: dbConfig.user,
@@ -26,11 +36,11 @@ export const initDatabase = async () => {
         await tempConnection.execute(`CREATE DATABASE IF NOT EXISTS ${dbConfig.database} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
         console.log(`✅ Database '${dbConfig.database}' ensured to exist`);
         await tempConnection.end();
-        connection = await mysql.createConnection(dbConfig);
-        console.log('✅ Connected to MySQL database');
+        pool = mysql.createPool(poolConfig);
+        console.log('✅ Connected to MySQL database with connection pool');
         await createTables();
         console.log('✅ MySQL database initialized successfully');
-        return connection;
+        return pool;
     }
     catch (error) {
         console.error('❌ Failed to initialize MySQL database:', error);
@@ -38,8 +48,9 @@ export const initDatabase = async () => {
     }
 };
 const createTables = async () => {
-    if (!connection)
+    if (!pool)
         return;
+    const connection = await pool.getConnection();
     try {
         console.log('🔄 Creating database tables...');
         await connection.execute(`
@@ -352,19 +363,28 @@ const createTables = async () => {
         console.error('❌ Error creating database tables:', error);
         throw error;
     }
+    finally {
+        connection.release();
+    }
 };
 export const getConnection = () => {
-    if (!connection) {
+    if (!pool) {
         throw new Error('Database not initialized. Call initDatabase() first.');
     }
-    return connection;
+    return pool;
 };
 export const testConnection = async () => {
     try {
-        const conn = getConnection();
-        await conn.ping();
-        console.log('✅ Database connection is healthy');
-        return true;
+        const pool = getConnection();
+        const connection = await pool.getConnection();
+        try {
+            await connection.ping();
+            console.log('✅ Database connection is healthy');
+            return true;
+        }
+        finally {
+            connection.release();
+        }
     }
     catch (error) {
         console.error('❌ Database connection test failed:', error);
@@ -372,10 +392,10 @@ export const testConnection = async () => {
     }
 };
 export const closeConnection = async () => {
-    if (connection) {
-        await connection.end();
-        connection = null;
-        console.log('✅ Database connection closed');
+    if (pool) {
+        await pool.end();
+        pool = null;
+        console.log('✅ Database connection pool closed');
     }
 };
 process.on('SIGINT', async () => {
