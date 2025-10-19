@@ -164,7 +164,8 @@ export class QuoteRepository {
   }
 
   async create(quoteData: CreateQuoteRequest): Promise<number> {
-    const connection = this.getDbConnection();
+    const pool = this.getDbConnection();
+    const connection = await pool.getConnection();
     
     try {
       // Start transaction
@@ -231,11 +232,15 @@ export class QuoteRepository {
       await connection.rollback();
       console.error('Error creating quote:', error);
       throw new Error('Failed to create quote in database');
+    } finally {
+      // Always release the connection back to the pool
+      connection.release();
     }
   }
 
   async update(id: number, quoteData: UpdateQuoteRequest): Promise<boolean> {
-    const connection = this.getDbConnection();
+    const pool = this.getDbConnection();
+    const connection = await pool.getConnection();
     
     try {
       // Start transaction
@@ -337,11 +342,15 @@ export class QuoteRepository {
       await connection.rollback();
       console.error('Error updating quote:', error);
       throw new Error('Failed to update quote in database');
+    } finally {
+      // Always release the connection back to the pool
+      connection.release();
     }
   }
 
   async delete(id: number): Promise<boolean> {
-    const connection = this.getDbConnection();
+    const pool = this.getDbConnection();
+    const connection = await pool.getConnection();
     
     try {
       // Start transaction
@@ -367,6 +376,9 @@ export class QuoteRepository {
       await connection.rollback();
       console.error('Error deleting quote:', error);
       throw new Error('Failed to delete quote from database');
+    } finally {
+      // Always release the connection back to the pool
+      connection.release();
     }
   }
 
@@ -390,7 +402,8 @@ export class QuoteRepository {
   }
 
   async duplicate(id: number, newQuoteNumber: string, newTier?: string): Promise<number> {
-    const connection = this.getDbConnection();
+    const pool = this.getDbConnection();
+    const connection = await pool.getConnection();
     
     try {
       // Start transaction
@@ -566,6 +579,9 @@ export class QuoteRepository {
         sqlMessage: (error as any)?.sqlMessage
       });
       throw error; // Throw original error instead of generic message
+    } finally {
+      // Always release the connection back to the pool
+      connection.release();
     }
   }
 

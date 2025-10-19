@@ -122,7 +122,8 @@ export class QuoteRepository {
         }
     }
     async create(quoteData) {
-        const connection = this.getDbConnection();
+        const pool = this.getDbConnection();
+        const connection = await pool.getConnection();
         try {
             await connection.beginTransaction();
             const [quoteResult] = await connection.execute(`INSERT INTO quotes (
@@ -175,9 +176,13 @@ export class QuoteRepository {
             console.error('Error creating quote:', error);
             throw new Error('Failed to create quote in database');
         }
+        finally {
+            connection.release();
+        }
     }
     async update(id, quoteData) {
-        const connection = this.getDbConnection();
+        const pool = this.getDbConnection();
+        const connection = await pool.getConnection();
         try {
             await connection.beginTransaction();
             const updates = [];
@@ -259,9 +264,13 @@ export class QuoteRepository {
             console.error('Error updating quote:', error);
             throw new Error('Failed to update quote in database');
         }
+        finally {
+            connection.release();
+        }
     }
     async delete(id) {
-        const connection = this.getDbConnection();
+        const pool = this.getDbConnection();
+        const connection = await pool.getConnection();
         try {
             await connection.beginTransaction();
             await connection.execute('DELETE FROM quote_lines WHERE quote_id = ?', [id]);
@@ -273,6 +282,9 @@ export class QuoteRepository {
             await connection.rollback();
             console.error('Error deleting quote:', error);
             throw new Error('Failed to delete quote from database');
+        }
+        finally {
+            connection.release();
         }
     }
     async search(companyId, query) {
@@ -292,7 +304,8 @@ export class QuoteRepository {
         }
     }
     async duplicate(id, newQuoteNumber, newTier) {
-        const connection = this.getDbConnection();
+        const pool = this.getDbConnection();
+        const connection = await pool.getConnection();
         try {
             await connection.beginTransaction();
             const originalQuote = await this.findById(id);
@@ -425,6 +438,9 @@ export class QuoteRepository {
                 sqlMessage: error?.sqlMessage
             });
             throw error;
+        }
+        finally {
+            connection.release();
         }
     }
     async findByCompanyAndQuoteNumber(companyId, quoteNumber) {
