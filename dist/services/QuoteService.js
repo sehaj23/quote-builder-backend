@@ -4,7 +4,7 @@ export class QuoteService {
         this.quoteRepository = quoteRepository;
     }
     async generateUniqueQuoteNumber(companyId) {
-        const companyRepository = (await import('@/repositories/CompanyRepository.js')).CompanyRepository;
+        const companyRepository = (await import('../repositories/CompanyRepository.js')).CompanyRepository;
         const companyRepo = new companyRepository();
         const company = await companyRepo.findById(companyId);
         if (!company) {
@@ -369,7 +369,7 @@ export class QuoteService {
         if (!originalQuote) {
             throw new Error('Original quote not found');
         }
-        const companyRepository = (await import('@/repositories/CompanyRepository.js')).CompanyRepository;
+        const companyRepository = (await import('../repositories/CompanyRepository.js')).CompanyRepository;
         const companyRepo = new companyRepository();
         const company = await companyRepo.findById(originalQuote.company_id);
         if (!company) {

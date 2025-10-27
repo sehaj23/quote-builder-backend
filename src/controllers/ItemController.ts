@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { ItemService } from '@/services/ItemService.js';
-import { CreateItemRequest, UpdateItemRequest, ApiResponse } from '@/types/index.js';
+import { ItemService } from '../services/ItemService.js';
+import { CreateItemRequest, UpdateItemRequest, ApiResponse } from '../types/index.js';
 
 export class ItemController {
   constructor(private itemService: ItemService) {}

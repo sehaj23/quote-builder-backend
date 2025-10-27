@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { ItemService } from '@/services/ItemService.js';
+import { ItemService } from '../services/ItemService.js';
 export declare class ItemController {
     private itemService;
     constructor(itemService: ItemService);

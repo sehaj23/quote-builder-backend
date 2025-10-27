@@ -6,7 +6,7 @@ export class QuoteService {
 
   private async generateUniqueQuoteNumber(companyId: number): Promise<string> {
     // Get company to use proper quote numbering
-    const companyRepository = (await import('@/repositories/CompanyRepository.js')).CompanyRepository;
+    const companyRepository = (await import('../repositories/CompanyRepository.js')).CompanyRepository;
     const companyRepo = new companyRepository();
     const company = await companyRepo.findById(companyId);
     
@@ -452,7 +452,7 @@ export class QuoteService {
     }
 
     // Get company to use proper quote numbering
-    const companyRepository = (await import('@/repositories/CompanyRepository.js')).CompanyRepository;
+    const companyRepository = (await import('../repositories/CompanyRepository.js')).CompanyRepository;
     const companyRepo = new companyRepository();
     const company = await companyRepo.findById(originalQuote.company_id);
     
