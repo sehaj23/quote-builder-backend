@@ -148,9 +148,10 @@ export class QuoteRepository {
             if (quoteData.lines && quoteData.lines.length > 0) {
                 for (const line of quoteData.lines) {
                     await connection.execute(`INSERT INTO quote_lines (
-              quote_id, item_id, description, unit, quantity, area, unit_rate, line_total
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
+              quote_id, company_id, item_id, description, unit, quantity, area, unit_rate, line_total
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
                         quoteId,
+                        quoteData.company_id,
                         line.item_id || null,
                         line.description || null,
                         line.unit || null,
@@ -238,13 +239,19 @@ export class QuoteRepository {
                 await connection.execute(query, values);
             }
             if (quoteData.lines !== undefined) {
+                const [quoteRows] = await connection.execute('SELECT company_id FROM quotes WHERE id = ?', [id]);
+                if (quoteRows.length === 0) {
+                    throw new Error('Quote not found');
+                }
+                const companyId = quoteRows[0]?.company_id;
                 await connection.execute('DELETE FROM quote_lines WHERE quote_id = ?', [id]);
                 if (quoteData.lines.length > 0) {
                     for (const line of quoteData.lines) {
                         await connection.execute(`INSERT INTO quote_lines (
-                quote_id, item_id, description, unit, quantity, area, unit_rate, line_total
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
+                quote_id, company_id, item_id, description, unit, quantity, area, unit_rate, line_total
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
                             id,
+                            companyId,
                             line.item_id || null,
                             line.description || null,
                             line.unit || null,
@@ -412,9 +419,10 @@ export class QuoteRepository {
             const newQuoteId = quoteResult.insertId;
             for (const line of adjustedLines) {
                 await connection.execute(`INSERT INTO quote_lines (
-            quote_id, item_id, description, unit, quantity, area, unit_rate, line_total
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
+            quote_id, company_id, item_id, description, unit, quantity, area, unit_rate, line_total
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
                     newQuoteId,
+                    originalQuote.company_id,
                     line.item_id,
                     line.description,
                     line.unit,
