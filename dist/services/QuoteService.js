@@ -119,7 +119,13 @@ export class QuoteService {
         const calculatedTax = quoteData.tax || 0;
         const discountAmount = parseFloat(quoteData.discount?.toString() || '0') || 0;
         const discountType = quoteData.discount_type || 'fixed';
+        const designFeeAmount = parseFloat(quoteData.design_fee?.toString() || '0') || 0;
+        const designFeeType = quoteData.design_fee_type || 'fixed';
+        const handlingFeeAmount = parseFloat(quoteData.handling_fee?.toString() || '0') || 0;
+        const handlingFeeType = quoteData.handling_fee_type || 'fixed';
         let calculatedDiscount = 0;
+        let calculatedDesignFee = 0;
+        let calculatedHandlingFee = 0;
         if (discountAmount > 0) {
             if (discountType === 'percentage') {
                 calculatedDiscount = (calculatedSubtotal * discountAmount) / 100;
@@ -128,7 +134,23 @@ export class QuoteService {
                 calculatedDiscount = discountAmount;
             }
         }
-        const calculatedTotal = parseFloat(calculatedSubtotal?.toString() || '0') + parseFloat(calculatedTax?.toString() || '0') - calculatedDiscount;
+        if (designFeeAmount > 0) {
+            if (designFeeType === 'percentage') {
+                calculatedDesignFee = (calculatedSubtotal * designFeeAmount) / 100;
+            }
+            else {
+                calculatedDesignFee = designFeeAmount;
+            }
+        }
+        if (handlingFeeAmount > 0) {
+            if (handlingFeeType === 'percentage') {
+                calculatedHandlingFee = (calculatedSubtotal * handlingFeeAmount) / 100;
+            }
+            else {
+                calculatedHandlingFee = handlingFeeAmount;
+            }
+        }
+        const calculatedTotal = parseFloat(calculatedSubtotal?.toString() || '0') + parseFloat(calculatedTax?.toString() || '0') + calculatedDesignFee + calculatedHandlingFee - calculatedDiscount;
         const sanitizedData = {
             company_id: quoteData.company_id,
             quote_number: finalQuoteNumber,
@@ -138,6 +160,10 @@ export class QuoteService {
             tax: calculatedTax,
             discount: discountAmount,
             discount_type: discountType,
+            design_fee: designFeeAmount,
+            design_fee_type: designFeeType,
+            handling_fee: handlingFeeAmount,
+            handling_fee_type: handlingFeeType,
             total: calculatedTotal,
             lines: quoteData.lines || []
         };
@@ -212,7 +238,7 @@ export class QuoteService {
         if (quoteData.total !== undefined && quoteData.total < 0) {
             throw new Error('Total cannot be negative');
         }
-        let calculatedSubtotal, calculatedTax, calculatedDiscount, calculatedTotal;
+        let calculatedSubtotal, calculatedTax, calculatedDiscount, calculatedDesignFee, calculatedHandlingFee, calculatedTotal;
         if (quoteData.lines !== undefined) {
             const calculateTotalsFromLines = (lines) => {
                 return lines.reduce((sum, line) => {
@@ -224,6 +250,10 @@ export class QuoteService {
             calculatedTax = quoteData.tax ?? 0;
             const discountAmount = quoteData.discount ?? 0;
             const discountType = quoteData.discount_type ?? 'fixed';
+            const designFeeAmount = quoteData.design_fee ?? 0;
+            const designFeeType = quoteData.design_fee_type ?? 'fixed';
+            const handlingFeeAmount = quoteData.handling_fee ?? 0;
+            const handlingFeeType = quoteData.handling_fee_type ?? 'fixed';
             if (discountAmount > 0) {
                 if (discountType === 'percentage') {
                     calculatedDiscount = (calculatedSubtotal * discountAmount) / 100;
@@ -235,16 +265,49 @@ export class QuoteService {
             else {
                 calculatedDiscount = 0;
             }
-            calculatedTotal = calculatedSubtotal + calculatedTax - calculatedDiscount;
+            if (designFeeAmount > 0) {
+                if (designFeeType === 'percentage') {
+                    calculatedDesignFee = (calculatedSubtotal * designFeeAmount) / 100;
+                }
+                else {
+                    calculatedDesignFee = designFeeAmount;
+                }
+            }
+            else {
+                calculatedDesignFee = 0;
+            }
+            if (handlingFeeAmount > 0) {
+                if (handlingFeeType === 'percentage') {
+                    calculatedHandlingFee = (calculatedSubtotal * handlingFeeAmount) / 100;
+                }
+                else {
+                    calculatedHandlingFee = handlingFeeAmount;
+                }
+            }
+            else {
+                calculatedHandlingFee = 0;
+            }
+            calculatedTotal = calculatedSubtotal + calculatedTax + (calculatedDesignFee || 0) + (calculatedHandlingFee || 0) - (calculatedDiscount || 0);
         }
         else {
-            if (quoteData.subtotal !== undefined || quoteData.tax !== undefined || quoteData.discount !== undefined) {
+            if (quoteData.subtotal !== undefined ||
+                quoteData.tax !== undefined ||
+                quoteData.discount !== undefined ||
+                quoteData.discount_type !== undefined ||
+                quoteData.design_fee !== undefined ||
+                quoteData.design_fee_type !== undefined ||
+                quoteData.handling_fee !== undefined ||
+                quoteData.handling_fee_type !== undefined) {
                 const currentQuote = await this.quoteRepository.findById(id);
                 if (currentQuote) {
                     const subtotal = quoteData.subtotal !== undefined ? quoteData.subtotal : parseFloat(currentQuote.subtotal?.toString() || '0');
                     const tax = quoteData.tax !== undefined ? quoteData.tax : parseFloat(currentQuote.tax?.toString() || '0');
                     const discountAmount = quoteData.discount !== undefined ? quoteData.discount : parseFloat(currentQuote.discount?.toString() || '0');
                     const discountType = quoteData.discount_type !== undefined ? quoteData.discount_type : (currentQuote.discount_type || 'fixed');
+                    const designFeeAmount = quoteData.design_fee !== undefined ? quoteData.design_fee : parseFloat(currentQuote.design_fee?.toString() || '0');
+                    const designFeeType = quoteData.design_fee_type !== undefined ? quoteData.design_fee_type : (currentQuote.design_fee_type || 'fixed');
+                    const handlingFeeAmount = quoteData.handling_fee !== undefined ? quoteData.handling_fee : parseFloat(currentQuote.handling_fee?.toString() || '0');
+                    const handlingFeeType = quoteData.handling_fee_type !== undefined ? quoteData.handling_fee_type : (currentQuote.handling_fee_type || 'fixed');
                     let actualDiscount = 0;
                     if (discountAmount > 0) {
                         if (discountType === 'percentage') {
@@ -254,7 +317,25 @@ export class QuoteService {
                             actualDiscount = discountAmount;
                         }
                     }
-                    calculatedTotal = subtotal + tax - actualDiscount;
+                    let actualDesignFee = 0;
+                    if (designFeeAmount > 0) {
+                        if (designFeeType === 'percentage') {
+                            actualDesignFee = (subtotal * designFeeAmount) / 100;
+                        }
+                        else {
+                            actualDesignFee = designFeeAmount;
+                        }
+                    }
+                    let actualHandlingFee = 0;
+                    if (handlingFeeAmount > 0) {
+                        if (handlingFeeType === 'percentage') {
+                            actualHandlingFee = (subtotal * handlingFeeAmount) / 100;
+                        }
+                        else {
+                            actualHandlingFee = handlingFeeAmount;
+                        }
+                    }
+                    calculatedTotal = subtotal + tax + actualDesignFee + actualHandlingFee - actualDiscount;
                 }
             }
         }
@@ -305,6 +386,18 @@ export class QuoteService {
             if (finalDiscount !== undefined) {
                 sanitizedData.discount = finalDiscount;
             }
+        }
+        if (quoteData.design_fee !== undefined) {
+            sanitizedData.design_fee = quoteData.design_fee;
+        }
+        if (quoteData.design_fee_type !== undefined) {
+            sanitizedData.design_fee_type = quoteData.design_fee_type;
+        }
+        if (quoteData.handling_fee !== undefined) {
+            sanitizedData.handling_fee = quoteData.handling_fee;
+        }
+        if (quoteData.handling_fee_type !== undefined) {
+            sanitizedData.handling_fee_type = quoteData.handling_fee_type;
         }
         if (quoteData.total !== undefined || calculatedTotal !== undefined) {
             const finalTotal = calculatedTotal ?? quoteData.total;

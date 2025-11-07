@@ -170,6 +170,10 @@ const createTables = async () => {
         tax DECIMAL(12,2) DEFAULT 0,
         discount DECIMAL(12,2) DEFAULT 0,
         discount_type VARCHAR(20) DEFAULT 'fixed',
+        design_fee DECIMAL(12,2) DEFAULT 0,
+        design_fee_type VARCHAR(20) DEFAULT 'fixed',
+        handling_fee DECIMAL(12,2) DEFAULT 0,
+        handling_fee_type VARCHAR(20) DEFAULT 'fixed',
         total DECIMAL(12,2) DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -280,6 +284,78 @@ const createTables = async () => {
             }
             else {
                 console.log('✅ discount_type column already exists');
+            }
+            const [designFeeColumns] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quotes' 
+          AND COLUMN_NAME = 'design_fee'
+      `);
+            if (designFeeColumns.length === 0) {
+                console.log('➕ Adding design_fee column to quotes table...');
+                await connection.execute(`
+          ALTER TABLE quotes 
+          ADD COLUMN design_fee DECIMAL(12,2) DEFAULT 0 AFTER discount_type
+        `);
+                console.log('✅ Added design_fee column');
+            }
+            else {
+                console.log('✅ design_fee column already exists');
+            }
+            const [designFeeTypeColumns] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quotes' 
+          AND COLUMN_NAME = 'design_fee_type'
+      `);
+            if (designFeeTypeColumns.length === 0) {
+                console.log('➕ Adding design_fee_type column to quotes table...');
+                await connection.execute(`
+          ALTER TABLE quotes 
+          ADD COLUMN design_fee_type VARCHAR(20) DEFAULT 'fixed' AFTER design_fee
+        `);
+                console.log('✅ Added design_fee_type column');
+            }
+            else {
+                console.log('✅ design_fee_type column already exists');
+            }
+            const [handlingFeeColumns] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quotes' 
+          AND COLUMN_NAME = 'handling_fee'
+      `);
+            if (handlingFeeColumns.length === 0) {
+                console.log('➕ Adding handling_fee column to quotes table...');
+                await connection.execute(`
+          ALTER TABLE quotes 
+          ADD COLUMN handling_fee DECIMAL(12,2) DEFAULT 0 AFTER design_fee_type
+        `);
+                console.log('✅ Added handling_fee column');
+            }
+            else {
+                console.log('✅ handling_fee column already exists');
+            }
+            const [handlingFeeTypeColumns] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quotes' 
+          AND COLUMN_NAME = 'handling_fee_type'
+      `);
+            if (handlingFeeTypeColumns.length === 0) {
+                console.log('➕ Adding handling_fee_type column to quotes table...');
+                await connection.execute(`
+          ALTER TABLE quotes 
+          ADD COLUMN handling_fee_type VARCHAR(20) DEFAULT 'fixed' AFTER handling_fee
+        `);
+                console.log('✅ Added handling_fee_type column');
+            }
+            else {
+                console.log('✅ handling_fee_type column already exists');
             }
         }
         catch (migrationError) {

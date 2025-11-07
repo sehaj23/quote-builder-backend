@@ -6,11 +6,13 @@ export class AttachmentController {
     activityService;
     s3Client;
     bucketName;
+    s3Region;
     constructor(attachmentService, activityService) {
         this.attachmentService = attachmentService;
         this.activityService = activityService;
+        this.s3Region = process.env.AWS_REGION || process.env.AWS_S3_REGION || 'us-east-1';
         this.s3Client = new S3Client({
-            region: process.env.AWS_REGION || 'us-east-1',
+            region: this.s3Region,
             credentials: {
                 accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
                 secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -65,14 +67,38 @@ export class AttachmentController {
             console.log(`✅ S3 bucket ${this.bucketName} exists and is accessible`);
         }
         catch (error) {
+            console.log(error);
+            if (error.$metadata?.httpStatusCode === 301 || error.name === 'PermanentRedirect') {
+                const hintedRegion = (error?.$response?.headers?.['x-amz-bucket-region']
+                    || error?.$response?.headers?.['x-amz-bucket-region'.toLowerCase()]
+                    || error?.BucketRegion
+                    || error?.Region);
+                if (hintedRegion && hintedRegion !== this.s3Region) {
+                    console.warn(`🔁 S3 bucket region mismatch. Retrying HeadBucket in region '${hintedRegion}'.`);
+                    this.s3Region = hintedRegion;
+                    this.s3Client = new S3Client({
+                        region: this.s3Region,
+                        credentials: {
+                            accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+                            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+                        },
+                    });
+                    const retryHead = new HeadBucketCommand({ Bucket: this.bucketName });
+                    await this.s3Client.send(retryHead);
+                    console.log(`✅ S3 bucket ${this.bucketName} is accessible in region ${this.s3Region}`);
+                    return;
+                }
+                console.error('❌ S3 bucket access error: Region mismatch (HTTP 301). Set AWS_REGION to the bucket\'s region.');
+                throw new Error('S3 bucket access error: Region mismatch (HTTP 301).');
+            }
             if (error.$metadata?.httpStatusCode === 404) {
                 console.log(`🔧 Creating S3 bucket: ${this.bucketName}`);
                 try {
                     const createCommand = new CreateBucketCommand({
                         Bucket: this.bucketName,
                         CreateBucketConfiguration: {
-                            LocationConstraint: process.env.AWS_REGION && process.env.AWS_REGION !== 'us-east-1'
-                                ? process.env.AWS_REGION
+                            LocationConstraint: this.s3Region && this.s3Region !== 'us-east-1'
+                                ? this.s3Region
                                 : undefined
                         }
                     });
@@ -176,7 +202,9 @@ export class AttachmentController {
                 ContentType: req.file.mimetype
             });
             await this.s3Client.send(putCommand);
-            const s3Url = `https://${this.bucketName}.s3.amazonaws.com/${s3Key}`;
+            const s3Url = this.s3Region && this.s3Region !== 'us-east-1'
+                ? `https://${this.bucketName}.s3.${this.s3Region}.amazonaws.com/${s3Key}`
+                : `https://${this.bucketName}.s3.amazonaws.com/${s3Key}`;
             const attachmentData = {
                 company_id: parseInt(companyId),
                 filename: `${timestamp}.${fileExtension}`,

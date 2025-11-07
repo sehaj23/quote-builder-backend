@@ -43,6 +43,10 @@ export interface Quote {
     tax?: number;
     discount?: number;
     discount_type?: 'fixed' | 'percentage';
+    design_fee?: number;
+    design_fee_type?: 'fixed' | 'percentage';
+    handling_fee?: number;
+    handling_fee_type?: 'fixed' | 'percentage';
     total?: number;
     created_at?: Date;
     updated_at?: Date;
@@ -106,6 +110,10 @@ export interface CreateQuoteRequest {
     tax?: number;
     discount?: number;
     discount_type?: 'fixed' | 'percentage';
+    design_fee?: number;
+    design_fee_type?: 'fixed' | 'percentage';
+    handling_fee?: number;
+    handling_fee_type?: 'fixed' | 'percentage';
     total?: number;
     lines: Omit<QuoteLine, 'id' | 'quote_id' | 'created_at' | 'updated_at'>[];
 }

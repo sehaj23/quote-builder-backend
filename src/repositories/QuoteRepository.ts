@@ -175,8 +175,9 @@ export class QuoteRepository {
       const [quoteResult] = await connection.execute<ResultSetHeader>(
         `INSERT INTO quotes (
           company_id, quote_number, project_name, customer_name, customer_email, 
-          customer_mobile, tier, status, subtotal, tax, discount, discount_type, total
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          customer_mobile, tier, status, subtotal, tax, discount, discount_type, 
+          design_fee, design_fee_type, handling_fee, handling_fee_type, total
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           quoteData.company_id,
           quoteData.quote_number,
@@ -190,6 +191,10 @@ export class QuoteRepository {
           quoteData.tax || 0,
           quoteData.discount || 0,
           quoteData.discount_type || 'fixed',
+          quoteData.design_fee || 0,
+          quoteData.design_fee_type || 'fixed',
+          quoteData.handling_fee || 0,
+          quoteData.handling_fee_type || 'fixed',
           quoteData.total || 0
         ]
       );
@@ -290,6 +295,22 @@ export class QuoteRepository {
       if (quoteData.discount_type !== undefined) {
         updates.push('discount_type = ?');
         values.push(quoteData.discount_type);
+      }
+      if (quoteData.design_fee !== undefined) {
+        updates.push('design_fee = ?');
+        values.push(quoteData.design_fee);
+      }
+      if (quoteData.design_fee_type !== undefined) {
+        updates.push('design_fee_type = ?');
+        values.push(quoteData.design_fee_type);
+      }
+      if (quoteData.handling_fee !== undefined) {
+        updates.push('handling_fee = ?');
+        values.push(quoteData.handling_fee);
+      }
+      if (quoteData.handling_fee_type !== undefined) {
+        updates.push('handling_fee_type = ?');
+        values.push(quoteData.handling_fee_type);
       }
       if (quoteData.total !== undefined) {
         updates.push('total = ?');
@@ -488,10 +509,18 @@ export class QuoteRepository {
           }
         }
         
-        // Recalculate total with tax and discount
+        // Recalculate total with tax, discount, and fees
         const tax = originalQuote.tax || 0;
         const discount = originalQuote.discount || 0;
-        newTotal = Math.round((newSubtotal + tax - discount) * 100) / 100;
+        const designFeeRaw = (originalQuote as any).design_fee || 0;
+        const designFeeType = (originalQuote as any).design_fee_type || 'fixed';
+        const handlingFeeRaw = (originalQuote as any).handling_fee || 0;
+        const handlingFeeType = (originalQuote as any).handling_fee_type || 'fixed';
+
+        const designFee = designFeeRaw > 0 && designFeeType === 'percentage' ? (newSubtotal * designFeeRaw) / 100 : designFeeRaw;
+        const handlingFee = handlingFeeRaw > 0 && handlingFeeType === 'percentage' ? (newSubtotal * handlingFeeRaw) / 100 : handlingFeeRaw;
+
+        newTotal = Math.round((newSubtotal + tax + designFee + handlingFee - discount) * 100) / 100;
         newSubtotal = Math.round(newSubtotal * 100) / 100;
         
         console.log(`Total recalculated: ${originalQuote.total} → ${newTotal} (subtotal: ${newSubtotal})`);
@@ -516,8 +545,9 @@ export class QuoteRepository {
         [quoteResult] = await connection.execute<ResultSetHeader>(
           `INSERT INTO quotes (
             company_id, quote_number, project_name, customer_name, customer_email, 
-            customer_mobile, tier, status, subtotal, tax, discount, discount_type, total
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            customer_mobile, tier, status, subtotal, tax, discount, discount_type, 
+            design_fee, design_fee_type, handling_fee, handling_fee_type, total
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             originalQuote.company_id,
             newQuoteNumber,
@@ -531,6 +561,10 @@ export class QuoteRepository {
             originalQuote.tax,
             originalQuote.discount,
             originalQuote.discount_type || 'fixed',
+            (originalQuote as any).design_fee || 0,
+            (originalQuote as any).design_fee_type || 'fixed',
+            (originalQuote as any).handling_fee || 0,
+            (originalQuote as any).handling_fee_type || 'fixed',
             newTotal
           ]
         );

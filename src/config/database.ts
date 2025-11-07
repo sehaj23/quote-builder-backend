@@ -205,6 +205,10 @@ const createTables = async (): Promise<void> => {
         tax DECIMAL(12,2) DEFAULT 0,
         discount DECIMAL(12,2) DEFAULT 0,
         discount_type VARCHAR(20) DEFAULT 'fixed',
+        design_fee DECIMAL(12,2) DEFAULT 0,
+        design_fee_type VARCHAR(20) DEFAULT 'fixed',
+        handling_fee DECIMAL(12,2) DEFAULT 0,
+        handling_fee_type VARCHAR(20) DEFAULT 'fixed',
         total DECIMAL(12,2) DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -305,7 +309,7 @@ const createTables = async (): Promise<void> => {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // Migration: Add discount_type column to quotes table if it doesn't exist
+    // Migration: Add discount_type and fee columns to quotes table if they don't exist
     console.log('🔄 Checking for missing quote table columns...');
     try {
       // Check if discount_type column exists
@@ -326,6 +330,82 @@ const createTables = async (): Promise<void> => {
         console.log('✅ Added discount_type column');
       } else {
         console.log('✅ discount_type column already exists');
+      }
+
+      // Check and add design_fee
+      const [designFeeColumns] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quotes' 
+          AND COLUMN_NAME = 'design_fee'
+      `) as any[];
+      if (designFeeColumns.length === 0) {
+        console.log('➕ Adding design_fee column to quotes table...');
+        await connection.execute(`
+          ALTER TABLE quotes 
+          ADD COLUMN design_fee DECIMAL(12,2) DEFAULT 0 AFTER discount_type
+        `);
+        console.log('✅ Added design_fee column');
+      } else {
+        console.log('✅ design_fee column already exists');
+      }
+
+      // Check and add design_fee_type
+      const [designFeeTypeColumns] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quotes' 
+          AND COLUMN_NAME = 'design_fee_type'
+      `) as any[];
+      if (designFeeTypeColumns.length === 0) {
+        console.log('➕ Adding design_fee_type column to quotes table...');
+        await connection.execute(`
+          ALTER TABLE quotes 
+          ADD COLUMN design_fee_type VARCHAR(20) DEFAULT 'fixed' AFTER design_fee
+        `);
+        console.log('✅ Added design_fee_type column');
+      } else {
+        console.log('✅ design_fee_type column already exists');
+      }
+
+      // Check and add handling_fee
+      const [handlingFeeColumns] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quotes' 
+          AND COLUMN_NAME = 'handling_fee'
+      `) as any[];
+      if (handlingFeeColumns.length === 0) {
+        console.log('➕ Adding handling_fee column to quotes table...');
+        await connection.execute(`
+          ALTER TABLE quotes 
+          ADD COLUMN handling_fee DECIMAL(12,2) DEFAULT 0 AFTER design_fee_type
+        `);
+        console.log('✅ Added handling_fee column');
+      } else {
+        console.log('✅ handling_fee column already exists');
+      }
+
+      // Check and add handling_fee_type
+      const [handlingFeeTypeColumns] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quotes' 
+          AND COLUMN_NAME = 'handling_fee_type'
+      `) as any[];
+      if (handlingFeeTypeColumns.length === 0) {
+        console.log('➕ Adding handling_fee_type column to quotes table...');
+        await connection.execute(`
+          ALTER TABLE quotes 
+          ADD COLUMN handling_fee_type VARCHAR(20) DEFAULT 'fixed' AFTER handling_fee
+        `);
+        console.log('✅ Added handling_fee_type column');
+      } else {
+        console.log('✅ handling_fee_type column already exists');
       }
     } catch (migrationError) {
       console.warn('⚠️  Quote table migration warning:', migrationError);
