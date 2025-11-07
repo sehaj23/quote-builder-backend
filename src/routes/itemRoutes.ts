@@ -30,4 +30,8 @@ individualItemRouter.delete('/:id', authenticateToken, itemController.deleteItem
 export const categoryRouter = Router({ mergeParams: true });
 categoryRouter.get('/', authenticateToken, itemController.getCategories.bind(itemController));  // GET /api/companies/:companyId/categories
 
+// Auth-scoped categories (mounted under /api/categories)
+export const myCategoryRouter = Router();
+myCategoryRouter.get('/', authenticateToken, itemController.getMyCategories.bind(itemController));
+
 export default router;

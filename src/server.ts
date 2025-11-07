@@ -10,7 +10,7 @@ import { ApiResponse } from './types/index.js';
 
 // Route imports
 import companyRoutes from './routes/companyRoutes.js';
-import itemRoutes, { individualItemRouter, categoryRouter } from './routes/itemRoutes.js';
+import itemRoutes, { individualItemRouter, categoryRouter, myCategoryRouter } from './routes/itemRoutes.js';
 import quoteRoutes, { individualQuoteRouter } from './routes/quoteRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import superUserRoutes, { individualSuperUserRouter, activityRouter } from './routes/superUserRoutes.js';
@@ -93,6 +93,7 @@ app.use('/api/companies', companyRoutes);
 app.use('/api/companies/:companyId/items', itemRoutes);
 app.use('/api/items', individualItemRouter);
 app.use('/api/companies/:companyId/categories', categoryRouter);
+app.use('/api/categories', myCategoryRouter);
 
 // Quote routes - nested under companies and as individual routes  
 app.use('/api/companies/:companyId/quotes', quoteRoutes);

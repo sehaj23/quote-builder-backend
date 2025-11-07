@@ -17,5 +17,7 @@ individualItemRouter.put('/:id', authenticateToken, itemController.updateItem.bi
 individualItemRouter.delete('/:id', authenticateToken, itemController.deleteItem.bind(itemController));
 export const categoryRouter = Router({ mergeParams: true });
 categoryRouter.get('/', authenticateToken, itemController.getCategories.bind(itemController));
+export const myCategoryRouter = Router();
+myCategoryRouter.get('/', authenticateToken, itemController.getMyCategories.bind(itemController));
 export default router;
 //# sourceMappingURL=itemRoutes.js.map

@@ -11,5 +11,6 @@ export declare class ItemController {
     searchItems(req: Request, res: Response): Promise<void>;
     getItemsByCategory(req: Request, res: Response): Promise<void>;
     getCategories(req: Request, res: Response): Promise<void>;
+    getMyCategories(req: Request, res: Response): Promise<void>;
 }
 //# sourceMappingURL=ItemController.d.ts.map

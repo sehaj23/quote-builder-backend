@@ -263,5 +263,30 @@ export class ItemController {
             });
         }
     }
+    async getMyCategories(req, res) {
+        try {
+            const companyId = (req.user && req.user.company_id) ? parseInt(String(req.user.company_id)) : NaN;
+            if (isNaN(companyId)) {
+                res.status(400).json({
+                    success: false,
+                    error: 'Authenticated user is not associated with a company'
+                });
+                return;
+            }
+            const categories = await this.itemService.getCategories(companyId);
+            res.json({
+                success: true,
+                data: categories,
+                message: `Found ${categories.length} categories`
+            });
+        }
+        catch (error) {
+            console.error('Error in ItemController.getMyCategories:', error);
+            res.status(500).json({
+                success: false,
+                error: error instanceof Error ? error.message : 'Internal server error'
+            });
+        }
+    }
 }
 //# sourceMappingURL=ItemController.js.map
