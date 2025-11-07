@@ -111,6 +111,7 @@ export class AttachmentController {
       
       console.log(`✅ S3 bucket ${this.bucketName} exists and is accessible`);
     } catch (error: any) {
+      console.log(error)
       if (error.$metadata?.httpStatusCode === 404) {
         console.log(`🔧 Creating S3 bucket: ${this.bucketName}`);
         
