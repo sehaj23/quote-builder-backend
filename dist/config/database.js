@@ -140,6 +140,7 @@ const createTables = async () => {
         company_id INT NOT NULL,
         name VARCHAR(255) NOT NULL,
         default_description TEXT,
+        luxury_description TEXT,
         unit VARCHAR(50) NOT NULL,
         default_area DECIMAL(10,2) DEFAULT 1,
         unit_cost DECIMAL(10,2) NOT NULL,
@@ -265,6 +266,29 @@ const createTables = async () => {
         INDEX idx_activity_date (created_at)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+        try {
+            const [luxDescColumns] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'items' 
+          AND COLUMN_NAME = 'luxury_description'
+      `);
+            if (luxDescColumns.length === 0) {
+                console.log('➕ Adding luxury_description column to items table...');
+                await connection.execute(`
+          ALTER TABLE items 
+          ADD COLUMN luxury_description TEXT AFTER default_description
+        `);
+                console.log('✅ Added luxury_description column');
+            }
+            else {
+                console.log('✅ luxury_description column already exists on items table');
+            }
+        }
+        catch (err) {
+            console.warn('⚠️  Items table migration warning (luxury_description):', err);
+        }
         console.log('🔄 Checking for missing quote table columns...');
         try {
             const [discountTypeColumns] = await connection.execute(`

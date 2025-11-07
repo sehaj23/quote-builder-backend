@@ -57,6 +57,9 @@ export class ItemService {
         if (itemData.default_description?.trim()) {
             sanitizedData.default_description = itemData.default_description.trim();
         }
+        if (itemData.luxury_description?.trim()) {
+            sanitizedData.luxury_description = itemData.luxury_description.trim();
+        }
         if (itemData.tags?.trim()) {
             sanitizedData.tags = itemData.tags.trim();
         }
@@ -103,6 +106,11 @@ export class ItemService {
         if (itemData.default_description !== undefined) {
             if (itemData.default_description?.trim()) {
                 sanitizedData.default_description = itemData.default_description.trim();
+            }
+        }
+        if (itemData.luxury_description !== undefined) {
+            if (itemData.luxury_description?.trim()) {
+                sanitizedData.luxury_description = itemData.luxury_description.trim();
             }
         }
         if (itemData.unit !== undefined) {

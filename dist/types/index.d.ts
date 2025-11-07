@@ -1,3 +1,4 @@
+export type Tier = 'economy' | 'standard' | 'luxury';
 export interface Company {
     id?: number;
     name: string;
@@ -19,6 +20,7 @@ export interface Item {
     company_id: number;
     name: string;
     default_description?: string;
+    luxury_description?: string;
     unit: string;
     default_area?: number;
     unit_cost: number;
@@ -37,7 +39,7 @@ export interface Quote {
     customer_name?: string;
     customer_email?: string;
     customer_mobile?: string;
-    tier?: 'economy' | 'standard' | 'luxury';
+    tier?: Tier;
     status?: 'draft' | 'sent' | 'approved' | 'rejected';
     subtotal?: number;
     tax?: number;
@@ -87,6 +89,7 @@ export interface CreateItemRequest {
     company_id: number;
     name: string;
     default_description?: string;
+    luxury_description?: string;
     unit: string;
     default_area?: number;
     unit_cost: number;
@@ -104,7 +107,7 @@ export interface CreateQuoteRequest {
     customer_name?: string;
     customer_email?: string;
     customer_mobile?: string;
-    tier?: 'economy' | 'standard' | 'luxury';
+    tier?: Tier;
     status?: 'draft' | 'sent' | 'approved' | 'rejected';
     subtotal?: number;
     tax?: number;

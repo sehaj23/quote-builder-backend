@@ -200,10 +200,24 @@ export class QuoteRepository {
       );
 
       const quoteId = quoteResult.insertId;
+      const quoteTier = quoteData.tier || 'economy';
 
       // Insert quote lines if provided
       if (quoteData.lines && quoteData.lines.length > 0) {
         for (const line of quoteData.lines) {
+          let finalDescription = line.description || null;
+          if ((!finalDescription || String(finalDescription).trim().length === 0) && line.item_id) {
+            const [itemRows] = await connection.execute<RowDataPacket[]>(
+              'SELECT default_description, luxury_description FROM items WHERE id = ? LIMIT 1',
+              [line.item_id]
+            );
+            if (itemRows.length > 0) {
+              const item = itemRows[0] as any;
+              const candidate = quoteTier === 'luxury' ? (item['luxury_description'] || item['default_description']) : (item['default_description'] || item['luxury_description']);
+              finalDescription = candidate || null;
+            }
+          }
+
           await connection.execute<ResultSetHeader>(
             `INSERT INTO quote_lines (
               quote_id, company_id, item_id, description, unit, quantity, area, unit_rate, line_total
@@ -212,7 +226,7 @@ export class QuoteRepository {
               quoteId,
               quoteData.company_id,
               line.item_id || null,
-              line.description || null,
+              finalDescription,
               line.unit || null,
               line.quantity || 1,
               line.area || 1,
@@ -330,7 +344,7 @@ export class QuoteRepository {
       if (quoteData.lines !== undefined) {
         // Get company_id from existing quote
         const [quoteRows] = await connection.execute<RowDataPacket[]>(
-          'SELECT company_id FROM quotes WHERE id = ?',
+          'SELECT company_id, tier FROM quotes WHERE id = ?',
           [id]
         );
         
@@ -339,6 +353,7 @@ export class QuoteRepository {
         }
         
         const companyId = quoteRows[0]?.company_id;
+        const quoteTier = quoteRows[0]?.tier || 'economy';
         
         // Delete existing lines
         await connection.execute<ResultSetHeader>(
@@ -349,6 +364,19 @@ export class QuoteRepository {
         // Insert new lines
         if (quoteData.lines.length > 0) {
           for (const line of quoteData.lines) {
+            let finalDescription = line.description || null;
+            if ((!finalDescription || String(finalDescription).trim().length === 0) && line.item_id) {
+              const [itemRows] = await connection.execute<RowDataPacket[]>(
+                'SELECT default_description, luxury_description FROM items WHERE id = ? LIMIT 1',
+                [line.item_id]
+              );
+              if (itemRows.length > 0) {
+                const item = itemRows[0] as any;
+                const candidate = quoteTier === 'luxury' ? (item['luxury_description'] || item['default_description']) : (item['default_description'] || item['luxury_description']);
+                finalDescription = candidate || null;
+              }
+            }
+
             await connection.execute<ResultSetHeader>(
               `INSERT INTO quote_lines (
                 quote_id, company_id, item_id, description, unit, quantity, area, unit_rate, line_total
@@ -357,7 +385,7 @@ export class QuoteRepository {
                 id,
                 companyId,
                 line.item_id || null,
-                line.description || null,
+                finalDescription,
                 line.unit || null,
                 line.quantity || 1,
                 line.area || 1,
@@ -474,25 +502,37 @@ export class QuoteRepository {
             );
             
             if (itemRows.length > 0) {
-              const item = itemRows[0];
+              const item = itemRows[0] as any;
               let newUnitRate = line.unit_rate; // fallback to original rate
+              let newDescription = line.description; // default to existing description
               
               // Calculate new unit rate based on tier
               if (item && newTier === 'luxury') {
                 newUnitRate = item['luxury_unit_cost'] || item['unit_cost'] || line.unit_rate;
+                // Prefer luxury description for luxury tier
+                newDescription = item['luxury_description'] || item['default_description'] || line.description;
               } else if (item && newTier === 'economy') {
                 newUnitRate = item['economy_unit_cost'] || item['unit_cost'] || line.unit_rate;
+                // Prefer default description for non-luxury tiers
+                newDescription = item['default_description'] || item['luxury_description'] || line.description;
+              } else {
+                // For standard or unspecified tier, prefer default description
+                newDescription = item['default_description'] || item['luxury_description'] || line.description;
               }
               
               // Recalculate line total
               const areaMultiplier = line.area && line.area > 0 ? line.area : 1;
               const newLineTotal = Math.round((line.quantity || 1) * (newUnitRate || 0) * areaMultiplier * 100) / 100;
               
-              adjustedLines.push({
+              const updatedLine: any = {
                 ...line,
                 unit_rate: newUnitRate || 0,
                 line_total: newLineTotal
-              });
+              };
+              if (newDescription && String(newDescription).trim().length > 0) {
+                updatedLine.description = newDescription;
+              }
+              adjustedLines.push(updatedLine);
               
               newSubtotal += newLineTotal;
               

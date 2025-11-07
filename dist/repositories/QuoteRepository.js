@@ -150,15 +150,25 @@ export class QuoteRepository {
                 quoteData.total || 0
             ]);
             const quoteId = quoteResult.insertId;
+            const quoteTier = quoteData.tier || 'economy';
             if (quoteData.lines && quoteData.lines.length > 0) {
                 for (const line of quoteData.lines) {
+                    let finalDescription = line.description || null;
+                    if ((!finalDescription || String(finalDescription).trim().length === 0) && line.item_id) {
+                        const [itemRows] = await connection.execute('SELECT default_description, luxury_description FROM items WHERE id = ? LIMIT 1', [line.item_id]);
+                        if (itemRows.length > 0) {
+                            const item = itemRows[0];
+                            const candidate = quoteTier === 'luxury' ? (item['luxury_description'] || item['default_description']) : (item['default_description'] || item['luxury_description']);
+                            finalDescription = candidate || null;
+                        }
+                    }
                     await connection.execute(`INSERT INTO quote_lines (
               quote_id, company_id, item_id, description, unit, quantity, area, unit_rate, line_total
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
                         quoteId,
                         quoteData.company_id,
                         line.item_id || null,
-                        line.description || null,
+                        finalDescription,
                         line.unit || null,
                         line.quantity || 1,
                         line.area || 1,
@@ -260,21 +270,31 @@ export class QuoteRepository {
                 await connection.execute(query, values);
             }
             if (quoteData.lines !== undefined) {
-                const [quoteRows] = await connection.execute('SELECT company_id FROM quotes WHERE id = ?', [id]);
+                const [quoteRows] = await connection.execute('SELECT company_id, tier FROM quotes WHERE id = ?', [id]);
                 if (quoteRows.length === 0) {
                     throw new Error('Quote not found');
                 }
                 const companyId = quoteRows[0]?.company_id;
+                const quoteTier = quoteRows[0]?.tier || 'economy';
                 await connection.execute('DELETE FROM quote_lines WHERE quote_id = ?', [id]);
                 if (quoteData.lines.length > 0) {
                     for (const line of quoteData.lines) {
+                        let finalDescription = line.description || null;
+                        if ((!finalDescription || String(finalDescription).trim().length === 0) && line.item_id) {
+                            const [itemRows] = await connection.execute('SELECT default_description, luxury_description FROM items WHERE id = ? LIMIT 1', [line.item_id]);
+                            if (itemRows.length > 0) {
+                                const item = itemRows[0];
+                                const candidate = quoteTier === 'luxury' ? (item['luxury_description'] || item['default_description']) : (item['default_description'] || item['luxury_description']);
+                                finalDescription = candidate || null;
+                            }
+                        }
                         await connection.execute(`INSERT INTO quote_lines (
                 quote_id, company_id, item_id, description, unit, quantity, area, unit_rate, line_total
               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
                             id,
                             companyId,
                             line.item_id || null,
-                            line.description || null,
+                            finalDescription,
                             line.unit || null,
                             line.quantity || 1,
                             line.area || 1,
@@ -354,19 +374,29 @@ export class QuoteRepository {
                         if (itemRows.length > 0) {
                             const item = itemRows[0];
                             let newUnitRate = line.unit_rate;
+                            let newDescription = line.description;
                             if (item && newTier === 'luxury') {
                                 newUnitRate = item['luxury_unit_cost'] || item['unit_cost'] || line.unit_rate;
+                                newDescription = item['luxury_description'] || item['default_description'] || line.description;
                             }
                             else if (item && newTier === 'economy') {
                                 newUnitRate = item['economy_unit_cost'] || item['unit_cost'] || line.unit_rate;
+                                newDescription = item['default_description'] || item['luxury_description'] || line.description;
+                            }
+                            else {
+                                newDescription = item['default_description'] || item['luxury_description'] || line.description;
                             }
                             const areaMultiplier = line.area && line.area > 0 ? line.area : 1;
                             const newLineTotal = Math.round((line.quantity || 1) * (newUnitRate || 0) * areaMultiplier * 100) / 100;
-                            adjustedLines.push({
+                            const updatedLine = {
                                 ...line,
                                 unit_rate: newUnitRate || 0,
                                 line_total: newLineTotal
-                            });
+                            };
+                            if (newDescription && String(newDescription).trim().length > 0) {
+                                updatedLine.description = newDescription;
+                            }
+                            adjustedLines.push(updatedLine);
                             newSubtotal += newLineTotal;
                             console.log(`Item ${item ? item['name'] : 'Unknown'}: ${line.unit_rate} → ${newUnitRate} (${line.line_total} → ${newLineTotal})`);
                         }
