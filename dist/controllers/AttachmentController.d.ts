@@ -9,7 +9,6 @@ export declare class AttachmentController {
     private activityService;
     private s3Client;
     private bucketName;
-    private s3Region;
     constructor(attachmentService: AttachmentService, activityService: ActivityService);
     private validateAndNormalizeBucketName;
     private isValidBucketName;

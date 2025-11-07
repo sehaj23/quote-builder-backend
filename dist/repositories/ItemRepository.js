@@ -20,9 +20,9 @@ export class ItemRepository {
             let query = 'SELECT * FROM items WHERE company_id = ?';
             const params = [companyId];
             if (filters.search && filters.search.trim()) {
-                query += ' AND (name LIKE ? OR default_description LIKE ? OR category LIKE ?)';
+                query += ' AND (name LIKE ? OR default_description LIKE ? OR luxury_description LIKE ? OR category LIKE ?)';
                 const searchTerm = `%${filters.search.trim()}%`;
-                params.push(searchTerm, searchTerm, searchTerm);
+                params.push(searchTerm, searchTerm, searchTerm, searchTerm);
             }
             if (filters.category && filters.category.trim()) {
                 query += ' AND category = ?';
@@ -45,9 +45,9 @@ export class ItemRepository {
             let query = 'SELECT COUNT(*) as count FROM items WHERE company_id = ?';
             const params = [companyId];
             if (filters.search && filters.search.trim()) {
-                query += ' AND (name LIKE ? OR default_description LIKE ? OR category LIKE ?)';
+                query += ' AND (name LIKE ? OR default_description LIKE ? OR luxury_description LIKE ? OR category LIKE ?)';
                 const searchTerm = `%${filters.search.trim()}%`;
-                params.push(searchTerm, searchTerm, searchTerm);
+                params.push(searchTerm, searchTerm, searchTerm, searchTerm);
             }
             if (filters.category && filters.category.trim()) {
                 query += ' AND category = ?';
@@ -79,12 +79,13 @@ export class ItemRepository {
         try {
             const connection = this.getDbConnection();
             const [result] = await connection.execute(`INSERT INTO items (
-          company_id, name, default_description, unit, default_area, 
+          company_id, name, default_description, luxury_description, unit, default_area, 
           unit_cost, economy_unit_cost, luxury_unit_cost, tags, category
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
                 itemData.company_id,
                 itemData.name,
                 itemData.default_description || null,
+                itemData.luxury_description || null,
                 itemData.unit,
                 itemData.default_area || null,
                 itemData.unit_cost,
@@ -112,6 +113,10 @@ export class ItemRepository {
             if (itemData.default_description !== undefined) {
                 updates.push('default_description = ?');
                 values.push(itemData.default_description);
+            }
+            if (itemData.luxury_description !== undefined) {
+                updates.push('luxury_description = ?');
+                values.push(itemData.luxury_description);
             }
             if (itemData.unit !== undefined) {
                 updates.push('unit = ?');
@@ -172,8 +177,8 @@ export class ItemRepository {
             const searchTerm = `%${query}%`;
             const [rows] = await connection.execute(`SELECT * FROM items 
          WHERE company_id = ? 
-         AND (name LIKE ? OR default_description LIKE ? OR tags LIKE ? OR category LIKE ?)
-         ORDER BY category ASC, name ASC`, [companyId, searchTerm, searchTerm, searchTerm, searchTerm]);
+         AND (name LIKE ? OR default_description LIKE ? OR luxury_description LIKE ? OR tags LIKE ? OR category LIKE ?)
+         ORDER BY category ASC, name ASC`, [companyId, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm]);
             return rows;
         }
         catch (error) {
