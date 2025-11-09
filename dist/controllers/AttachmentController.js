@@ -72,8 +72,8 @@ export class AttachmentController {
                     const createCommand = new CreateBucketCommand({
                         Bucket: this.bucketName,
                         CreateBucketConfiguration: {
-                            LocationConstraint: process.env.AWS_REGION && process.env.AWS_REGION !== 'us-east-1'
-                                ? process.env.AWS_REGION
+                            LocationConstraint: process.env.AWS_S3_REGION && process.env.AWS_S3_REGION !== 'us-east-1'
+                                ? process.env.AWS_S3_REGION
                                 : undefined
                         }
                     });
