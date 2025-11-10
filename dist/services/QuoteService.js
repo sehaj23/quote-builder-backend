@@ -95,6 +95,32 @@ export class QuoteService {
                 if (line && line.line_total !== undefined && line.line_total < 0) {
                     throw new Error(`Line ${i + 1}: Line total cannot be negative`);
                 }
+                const itemName = line.item_name;
+                if (itemName && itemName.length > 255) {
+                    throw new Error(`Line ${i + 1}: item_name must be ≤ 255 characters`);
+                }
+                const itemUnitMeta = line.item_unit;
+                if (itemUnitMeta && itemUnitMeta.length > 50) {
+                    throw new Error(`Line ${i + 1}: item_unit must be ≤ 50 characters`);
+                }
+                const itemCategoryMeta = line.item_category;
+                if (itemCategoryMeta && itemCategoryMeta.length > 100) {
+                    throw new Error(`Line ${i + 1}: item_category must be ≤ 100 characters`);
+                }
+                const sectionKey = line.section_key;
+                const sectionIndex = line.section_index;
+                const sectionLabel = line.section_label;
+                if (sectionKey && sectionKey.length > 100) {
+                    throw new Error(`Line ${i + 1}: section_key must be ≤ 100 characters`);
+                }
+                if (sectionLabel && sectionLabel.length > 150) {
+                    throw new Error(`Line ${i + 1}: section_label must be ≤ 150 characters`);
+                }
+                if (sectionIndex !== undefined && sectionIndex !== null) {
+                    if (typeof sectionIndex !== 'number' || sectionIndex < 1) {
+                        throw new Error(`Line ${i + 1}: section_index must be an integer ≥ 1`);
+                    }
+                }
             }
         }
         if (quoteData.subtotal !== undefined && quoteData.subtotal < 0) {
@@ -223,6 +249,32 @@ export class QuoteService {
                 }
                 if (line && line.line_total !== undefined && line.line_total < 0) {
                     throw new Error(`Line ${i + 1}: Line total cannot be negative`);
+                }
+                const itemName = line.item_name;
+                if (itemName && itemName.length > 255) {
+                    throw new Error(`Line ${i + 1}: item_name must be ≤ 255 characters`);
+                }
+                const itemUnitMeta = line.item_unit;
+                if (itemUnitMeta && itemUnitMeta.length > 50) {
+                    throw new Error(`Line ${i + 1}: item_unit must be ≤ 50 characters`);
+                }
+                const itemCategoryMeta = line.item_category;
+                if (itemCategoryMeta && itemCategoryMeta.length > 100) {
+                    throw new Error(`Line ${i + 1}: item_category must be ≤ 100 characters`);
+                }
+                const sectionKey = line.section_key;
+                const sectionIndex = line.section_index;
+                const sectionLabel = line.section_label;
+                if (sectionKey && sectionKey.length > 100) {
+                    throw new Error(`Line ${i + 1}: section_key must be ≤ 100 characters`);
+                }
+                if (sectionLabel && sectionLabel.length > 150) {
+                    throw new Error(`Line ${i + 1}: section_label must be ≤ 150 characters`);
+                }
+                if (sectionIndex !== undefined && sectionIndex !== null) {
+                    if (typeof sectionIndex !== 'number' || sectionIndex < 1) {
+                        throw new Error(`Line ${i + 1}: section_index must be an integer ≥ 1`);
+                    }
                 }
             }
         }

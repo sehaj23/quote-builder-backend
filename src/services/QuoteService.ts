@@ -127,6 +127,33 @@ export class QuoteService {
         if (line && line.line_total !== undefined && line.line_total < 0) {
           throw new Error(`Line ${i + 1}: Line total cannot be negative`);
         }
+        const itemName = (line as any).item_name as string | undefined;
+        if (itemName && itemName.length > 255) {
+          throw new Error(`Line ${i + 1}: item_name must be ≤ 255 characters`);
+        }
+        const itemUnitMeta = (line as any).item_unit as string | undefined;
+        if (itemUnitMeta && itemUnitMeta.length > 50) {
+          throw new Error(`Line ${i + 1}: item_unit must be ≤ 50 characters`);
+        }
+        const itemCategoryMeta = (line as any).item_category as string | undefined;
+        if (itemCategoryMeta && itemCategoryMeta.length > 100) {
+          throw new Error(`Line ${i + 1}: item_category must be ≤ 100 characters`);
+        }
+        // Section fields validation
+        const sectionKey = (line as any).section_key as string | undefined;
+        const sectionIndex = (line as any).section_index as number | undefined;
+        const sectionLabel = (line as any).section_label as string | undefined;
+        if (sectionKey && sectionKey.length > 100) {
+          throw new Error(`Line ${i + 1}: section_key must be ≤ 100 characters`);
+        }
+        if (sectionLabel && sectionLabel.length > 150) {
+          throw new Error(`Line ${i + 1}: section_label must be ≤ 150 characters`);
+        }
+        if (sectionIndex !== undefined && sectionIndex !== null) {
+          if (typeof sectionIndex !== 'number' || sectionIndex < 1) {
+            throw new Error(`Line ${i + 1}: section_index must be an integer ≥ 1`);
+          }
+        }
       }
     }
 
@@ -277,6 +304,33 @@ export class QuoteService {
         }
         if (line && line.line_total !== undefined && line.line_total < 0) {
           throw new Error(`Line ${i + 1}: Line total cannot be negative`);
+        }
+        const itemName = (line as any).item_name as string | undefined;
+        if (itemName && itemName.length > 255) {
+          throw new Error(`Line ${i + 1}: item_name must be ≤ 255 characters`);
+        }
+        const itemUnitMeta = (line as any).item_unit as string | undefined;
+        if (itemUnitMeta && itemUnitMeta.length > 50) {
+          throw new Error(`Line ${i + 1}: item_unit must be ≤ 50 characters`);
+        }
+        const itemCategoryMeta = (line as any).item_category as string | undefined;
+        if (itemCategoryMeta && itemCategoryMeta.length > 100) {
+          throw new Error(`Line ${i + 1}: item_category must be ≤ 100 characters`);
+        }
+        // Section fields validation
+        const sectionKey = (line as any).section_key as string | undefined;
+        const sectionIndex = (line as any).section_index as number | undefined;
+        const sectionLabel = (line as any).section_label as string | undefined;
+        if (sectionKey && sectionKey.length > 100) {
+          throw new Error(`Line ${i + 1}: section_key must be ≤ 100 characters`);
+        }
+        if (sectionLabel && sectionLabel.length > 150) {
+          throw new Error(`Line ${i + 1}: section_label must be ≤ 150 characters`);
+        }
+        if (sectionIndex !== undefined && sectionIndex !== null) {
+          if (typeof sectionIndex !== 'number' || sectionIndex < 1) {
+            throw new Error(`Line ${i + 1}: section_index must be an integer ≥ 1`);
+          }
         }
       }
     }

@@ -58,7 +58,13 @@ export interface QuoteLine {
     quote_id: number;
     company_id: number;
     item_id: number;
+    item_name?: string;
+    item_unit?: string;
+    item_category?: string;
     description?: string;
+    section_key?: string;
+    section_index?: number;
+    section_label?: string;
     unit?: string;
     quantity?: number;
     area?: number;

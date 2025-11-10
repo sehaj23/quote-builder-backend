@@ -229,7 +229,13 @@ const createTables = async (): Promise<void> => {
         quote_id INT NOT NULL,
         company_id INT NOT NULL,
         item_id INT NOT NULL,
+        item_name VARCHAR(255),
+        item_unit VARCHAR(50),
+        item_category VARCHAR(100),
         description TEXT,
+        section_key VARCHAR(100),
+        section_index INT,
+        section_label VARCHAR(150),
         unit VARCHAR(50),
         quantity DECIMAL(10,2) DEFAULT 1,
         area DECIMAL(10,2) DEFAULT 1,
@@ -242,7 +248,8 @@ const createTables = async (): Promise<void> => {
         FOREIGN KEY (item_id) REFERENCES items (id) ON DELETE CASCADE,
         INDEX idx_line_quote (quote_id),
         INDEX idx_line_company (company_id),
-        INDEX idx_line_item (item_id)
+        INDEX idx_line_item (item_id),
+        INDEX idx_quote_lines_section (quote_id, section_key, section_index)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
@@ -331,6 +338,111 @@ const createTables = async (): Promise<void> => {
       }
     } catch (err) {
       console.warn('⚠️  Items table migration warning (luxury_description):', err);
+    }
+
+    // Migration: Add section_* columns and index to quote_lines if missing
+    try {
+      const [sectionKeyCols] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quote_lines' 
+          AND COLUMN_NAME = 'section_key'
+      `) as any[];
+      if (sectionKeyCols.length === 0) {
+        console.log('➕ Adding section_key to quote_lines...');
+        await connection.execute(`
+          ALTER TABLE quote_lines 
+          ADD COLUMN section_key VARCHAR(100) AFTER description
+        `);
+      }
+      const [itemNameCols] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quote_lines' 
+          AND COLUMN_NAME = 'item_name'
+      `) as any[];
+      if (itemNameCols.length === 0) {
+        console.log('➕ Adding item_name to quote_lines...');
+        await connection.execute(`
+          ALTER TABLE quote_lines 
+          ADD COLUMN item_name VARCHAR(255) AFTER item_id
+        `);
+      }
+      const [itemUnitCols] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quote_lines' 
+          AND COLUMN_NAME = 'item_unit'
+      `) as any[];
+      if (itemUnitCols.length === 0) {
+        console.log('➕ Adding item_unit to quote_lines...');
+        await connection.execute(`
+          ALTER TABLE quote_lines 
+          ADD COLUMN item_unit VARCHAR(50) AFTER item_name
+        `);
+      }
+      const [itemCategoryCols] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quote_lines' 
+          AND COLUMN_NAME = 'item_category'
+      `) as any[];
+      if (itemCategoryCols.length === 0) {
+        console.log('➕ Adding item_category to quote_lines...');
+        await connection.execute(`
+          ALTER TABLE quote_lines 
+          ADD COLUMN item_category VARCHAR(100) AFTER item_unit
+        `);
+      }
+      const [sectionIndexCols] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quote_lines' 
+          AND COLUMN_NAME = 'section_index'
+      `) as any[];
+      if (sectionIndexCols.length === 0) {
+        console.log('➕ Adding section_index to quote_lines...');
+        await connection.execute(`
+          ALTER TABLE quote_lines 
+          ADD COLUMN section_index INT AFTER section_key
+        `);
+      }
+      const [sectionLabelCols] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quote_lines' 
+          AND COLUMN_NAME = 'section_label'
+      `) as any[];
+      if (sectionLabelCols.length === 0) {
+        console.log('➕ Adding section_label to quote_lines...');
+        await connection.execute(`
+          ALTER TABLE quote_lines 
+          ADD COLUMN section_label VARCHAR(150) AFTER section_index
+        `);
+      }
+      // Create composite index if missing
+      const [sectionIndex] = await connection.execute(`
+        SELECT INDEX_NAME 
+        FROM INFORMATION_SCHEMA.STATISTICS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quote_lines' 
+          AND INDEX_NAME = 'idx_quote_lines_section'
+      `) as any[];
+      if (sectionIndex.length === 0) {
+        console.log('➕ Creating idx_quote_lines_section index on quote_lines...');
+        await connection.execute(`
+          CREATE INDEX idx_quote_lines_section 
+          ON quote_lines (quote_id, section_key, section_index)
+        `);
+      }
+    } catch (e) {
+      console.warn('⚠️  quote_lines section_* migration warning:', e);
     }
 
     // Migration: Add discount_type and fee columns to quotes table if they don't exist

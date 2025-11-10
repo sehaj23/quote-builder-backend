@@ -206,27 +206,44 @@ export class QuoteRepository {
       if (quoteData.lines && quoteData.lines.length > 0) {
         for (const line of quoteData.lines) {
           let finalDescription = line.description || null;
-          if ((!finalDescription || String(finalDescription).trim().length === 0) && line.item_id) {
+          let finalItemName = (line as any).item_name || null;
+          let finalItemUnitMeta = (line as any).item_unit || null;
+          let finalItemCategoryMeta = (line as any).item_category || null;
+          if (line.item_id && (!finalDescription || !finalItemName || !finalItemUnitMeta || !finalItemCategoryMeta)) {
             const [itemRows] = await connection.execute<RowDataPacket[]>(
-              'SELECT default_description, luxury_description FROM items WHERE id = ? LIMIT 1',
+              'SELECT name, unit, category, default_description, luxury_description FROM items WHERE id = ? LIMIT 1',
               [line.item_id]
             );
             if (itemRows.length > 0) {
               const item = itemRows[0] as any;
-              const candidate = quoteTier === 'luxury' ? (item['luxury_description'] || item['default_description']) : (item['default_description'] || item['luxury_description']);
-              finalDescription = candidate || null;
+              if (!finalItemName) finalItemName = item['name'] || null;
+              if (!finalItemUnitMeta) finalItemUnitMeta = item['unit'] || null;
+              if (!finalItemCategoryMeta) finalItemCategoryMeta = item['category'] || null;
+              if (!finalDescription) {
+                const candidate = quoteTier === 'luxury'
+                  ? (item['luxury_description'] || item['default_description'])
+                  : (item['default_description'] || item['luxury_description']);
+                finalDescription = candidate || null;
+              }
             }
           }
 
           await connection.execute<ResultSetHeader>(
             `INSERT INTO quote_lines (
-              quote_id, company_id, item_id, description, unit, quantity, area, unit_rate, line_total
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              quote_id, company_id, item_id, item_name, item_unit, item_category, description, section_key, section_index, section_label,
+              unit, quantity, area, unit_rate, line_total
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               quoteId,
               quoteData.company_id,
               line.item_id || null,
+              finalItemName,
+              finalItemUnitMeta,
+              finalItemCategoryMeta,
               finalDescription,
+              (line as any).section_key || null,
+              (line as any).section_index || null,
+              (line as any).section_label || null,
               line.unit || null,
               line.quantity || 1,
               line.area || 1,
@@ -365,27 +382,44 @@ export class QuoteRepository {
         if (quoteData.lines.length > 0) {
           for (const line of quoteData.lines) {
             let finalDescription = line.description || null;
-            if ((!finalDescription || String(finalDescription).trim().length === 0) && line.item_id) {
+            let finalItemName = (line as any).item_name || null;
+            let finalItemUnitMeta = (line as any).item_unit || null;
+            let finalItemCategoryMeta = (line as any).item_category || null;
+            if (line.item_id && (!finalDescription || !finalItemName || !finalItemUnitMeta || !finalItemCategoryMeta)) {
               const [itemRows] = await connection.execute<RowDataPacket[]>(
-                'SELECT default_description, luxury_description FROM items WHERE id = ? LIMIT 1',
+                'SELECT name, unit, category, default_description, luxury_description FROM items WHERE id = ? LIMIT 1',
                 [line.item_id]
               );
               if (itemRows.length > 0) {
                 const item = itemRows[0] as any;
-                const candidate = quoteTier === 'luxury' ? (item['luxury_description'] || item['default_description']) : (item['default_description'] || item['luxury_description']);
-                finalDescription = candidate || null;
+                if (!finalItemName) finalItemName = item['name'] || null;
+                if (!finalItemUnitMeta) finalItemUnitMeta = item['unit'] || null;
+                if (!finalItemCategoryMeta) finalItemCategoryMeta = item['category'] || null;
+                if (!finalDescription) {
+                  const candidate = quoteTier === 'luxury'
+                    ? (item['luxury_description'] || item['default_description'])
+                    : (item['default_description'] || item['luxury_description']);
+                  finalDescription = candidate || null;
+                }
               }
             }
 
             await connection.execute<ResultSetHeader>(
               `INSERT INTO quote_lines (
-                quote_id, company_id, item_id, description, unit, quantity, area, unit_rate, line_total
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                quote_id, company_id, item_id, item_name, item_unit, item_category, description, section_key, section_index, section_label,
+                unit, quantity, area, unit_rate, line_total
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
                 id,
                 companyId,
                 line.item_id || null,
+                finalItemName,
+                finalItemUnitMeta,
+                finalItemCategoryMeta,
                 finalDescription,
+                (line as any).section_key || null,
+                (line as any).section_index || null,
+                (line as any).section_label || null,
                 line.unit || null,
                 line.quantity || 1,
                 line.area || 1,
@@ -637,18 +671,25 @@ export class QuoteRepository {
       for (const line of adjustedLines) {
         await connection.execute<ResultSetHeader>(
           `INSERT INTO quote_lines (
-            quote_id, company_id, item_id, description, unit, quantity, area, unit_rate, line_total
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            quote_id, company_id, item_id, item_name, item_unit, item_category, description, section_key, section_index, section_label,
+            unit, quantity, area, unit_rate, line_total
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             newQuoteId,
             originalQuote.company_id,
-            line.item_id,
-            line.description,
-            line.unit,
-            line.quantity,
-            line.area,
-            line.unit_rate,
-            line.line_total
+            (line as any).item_id || null,
+            (line as any).item_name || null,
+            (line as any).item_unit || null,
+            (line as any).item_category || null,
+            (line as any).description || null,
+            (line as any).section_key || null,
+            (line as any).section_index || null,
+            (line as any).section_label || null,
+            (line as any).unit || null,
+            (line as any).quantity || 1,
+            (line as any).area || 1,
+            (line as any).unit_rate || 0,
+            (line as any).line_total || 0
           ]
         );
       }
