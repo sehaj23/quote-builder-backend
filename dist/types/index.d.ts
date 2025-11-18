@@ -65,6 +65,7 @@ export interface QuoteLine {
     section_key?: string;
     section_index?: number;
     section_label?: string;
+    sort_order?: number;
     unit?: string;
     quantity?: number;
     area?: number;

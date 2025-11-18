@@ -153,7 +153,9 @@ export class QuoteRepository {
     try {
       const connection = this.getDbConnection();
       const [rows] = await connection.execute<RowDataPacket[]>(
-        'SELECT * FROM quote_lines WHERE quote_id = ? ORDER BY id ASC',
+        `SELECT * FROM quote_lines 
+         WHERE quote_id = ? 
+         ORDER BY (section_index IS NULL), section_index ASC, (sort_order IS NULL), sort_order ASC, id ASC`,
         [quoteId]
       );
       return rows as QuoteLine[];
@@ -204,11 +206,25 @@ export class QuoteRepository {
 
       // Insert quote lines if provided
       if (quoteData.lines && quoteData.lines.length > 0) {
+        // Prepare per-section counters for missing sort_order
+        const sectionCounters = new Map<string, number>();
+        const getSectionKey = (l: any) => {
+          const key = (l.section_key || '') + '|' + (l.section_label || '') + '|' + (l.section_index ?? '');
+          return key || 'ungrouped|' + (l.item_category || '');
+        };
+        const nextSort = (l: any) => {
+          const k = getSectionKey(l);
+          const current = sectionCounters.get(k) ?? 0;
+          const next = current === 0 ? 10 : current + 10;
+          sectionCounters.set(k, next);
+          return next;
+        };
         for (const line of quoteData.lines) {
           let finalDescription = line.description || null;
           let finalItemName = (line as any).item_name || null;
           let finalItemUnitMeta = (line as any).item_unit || null;
           let finalItemCategoryMeta = (line as any).item_category || null;
+          let finalSortOrder = (line as any).sort_order as number | null | undefined;
           if (line.item_id && (!finalDescription || !finalItemName || !finalItemUnitMeta || !finalItemCategoryMeta)) {
             const [itemRows] = await connection.execute<RowDataPacket[]>(
               'SELECT name, unit, category, default_description, luxury_description FROM items WHERE id = ? LIMIT 1',
@@ -227,12 +243,15 @@ export class QuoteRepository {
               }
             }
           }
+          if (finalSortOrder === undefined || finalSortOrder === null) {
+            finalSortOrder = nextSort(line);
+          }
 
           await connection.execute<ResultSetHeader>(
             `INSERT INTO quote_lines (
               quote_id, company_id, item_id, item_name, item_unit, item_category, description, section_key, section_index, section_label,
-              unit, quantity, area, unit_rate, line_total
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              sort_order, unit, quantity, area, unit_rate, line_total
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               quoteId,
               quoteData.company_id,
@@ -244,6 +263,7 @@ export class QuoteRepository {
               (line as any).section_key || null,
               (line as any).section_index || null,
               (line as any).section_label || null,
+              finalSortOrder,
               line.unit || null,
               line.quantity || 1,
               line.area || 1,
@@ -380,11 +400,24 @@ export class QuoteRepository {
 
         // Insert new lines
         if (quoteData.lines.length > 0) {
+          const sectionCounters = new Map<string, number>();
+          const getSectionKey = (l: any) => {
+            const key = (l.section_key || '') + '|' + (l.section_label || '') + '|' + (l.section_index ?? '');
+            return key || 'ungrouped|' + (l.item_category || '');
+          };
+          const nextSort = (l: any) => {
+            const k = getSectionKey(l);
+            const current = sectionCounters.get(k) ?? 0;
+            const next = current === 0 ? 10 : current + 10;
+            sectionCounters.set(k, next);
+            return next;
+          };
           for (const line of quoteData.lines) {
             let finalDescription = line.description || null;
             let finalItemName = (line as any).item_name || null;
             let finalItemUnitMeta = (line as any).item_unit || null;
             let finalItemCategoryMeta = (line as any).item_category || null;
+            let finalSortOrder = (line as any).sort_order as number | null | undefined;
             if (line.item_id && (!finalDescription || !finalItemName || !finalItemUnitMeta || !finalItemCategoryMeta)) {
               const [itemRows] = await connection.execute<RowDataPacket[]>(
                 'SELECT name, unit, category, default_description, luxury_description FROM items WHERE id = ? LIMIT 1',
@@ -403,12 +436,15 @@ export class QuoteRepository {
                 }
               }
             }
+            if (finalSortOrder === undefined || finalSortOrder === null) {
+              finalSortOrder = nextSort(line);
+            }
 
             await connection.execute<ResultSetHeader>(
               `INSERT INTO quote_lines (
                 quote_id, company_id, item_id, item_name, item_unit, item_category, description, section_key, section_index, section_label,
-                unit, quantity, area, unit_rate, line_total
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                sort_order, unit, quantity, area, unit_rate, line_total
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
                 id,
                 companyId,
@@ -420,6 +456,7 @@ export class QuoteRepository {
                 (line as any).section_key || null,
                 (line as any).section_index || null,
                 (line as any).section_label || null,
+                finalSortOrder,
                 line.unit || null,
                 line.quantity || 1,
                 line.area || 1,
@@ -672,8 +709,8 @@ export class QuoteRepository {
         await connection.execute<ResultSetHeader>(
           `INSERT INTO quote_lines (
             quote_id, company_id, item_id, item_name, item_unit, item_category, description, section_key, section_index, section_label,
-            unit, quantity, area, unit_rate, line_total
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            sort_order, unit, quantity, area, unit_rate, line_total
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             newQuoteId,
             originalQuote.company_id,
@@ -685,6 +722,7 @@ export class QuoteRepository {
             (line as any).section_key || null,
             (line as any).section_index || null,
             (line as any).section_label || null,
+            (line as any).sort_order || null,
             (line as any).unit || null,
             (line as any).quantity || 1,
             (line as any).area || 1,

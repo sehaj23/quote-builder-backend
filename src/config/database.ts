@@ -236,6 +236,7 @@ const createTables = async (): Promise<void> => {
         section_key VARCHAR(100),
         section_index INT,
         section_label VARCHAR(150),
+        sort_order INT,
         unit VARCHAR(50),
         quantity DECIMAL(10,2) DEFAULT 1,
         area DECIMAL(10,2) DEFAULT 1,
@@ -249,6 +250,7 @@ const createTables = async (): Promise<void> => {
         INDEX idx_line_quote (quote_id),
         INDEX idx_line_company (company_id),
         INDEX idx_line_item (item_id),
+        INDEX idx_quote_lines_order (quote_id, section_index, sort_order, id),
         INDEX idx_quote_lines_section (quote_id, section_key, section_index)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
@@ -396,6 +398,35 @@ const createTables = async (): Promise<void> => {
         await connection.execute(`
           ALTER TABLE quote_lines 
           ADD COLUMN item_category VARCHAR(100) AFTER item_unit
+        `);
+      }
+      const [sortOrderCols] = await connection.execute(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quote_lines' 
+          AND COLUMN_NAME = 'sort_order'
+      `) as any[];
+      if (sortOrderCols.length === 0) {
+        console.log('➕ Adding sort_order to quote_lines...');
+        await connection.execute(`
+          ALTER TABLE quote_lines 
+          ADD COLUMN sort_order INT AFTER section_label
+        `);
+      }
+      // Create ordering index if missing
+      const [orderIdx] = await connection.execute(`
+        SELECT INDEX_NAME 
+        FROM INFORMATION_SCHEMA.STATISTICS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quote_lines' 
+          AND INDEX_NAME = 'idx_quote_lines_order'
+      `) as any[];
+      if (orderIdx.length === 0) {
+        console.log('➕ Creating idx_quote_lines_order on quote_lines...');
+        await connection.execute(`
+          CREATE INDEX idx_quote_lines_order 
+          ON quote_lines (quote_id, section_index, sort_order, id)
         `);
       }
       const [sectionIndexCols] = await connection.execute(`
