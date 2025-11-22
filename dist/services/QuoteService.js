@@ -121,6 +121,12 @@ export class QuoteService {
                         throw new Error(`Line ${i + 1}: section_index must be an integer ≥ 1`);
                     }
                 }
+                const sortOrder = line.sort_order;
+                if (sortOrder !== undefined && sortOrder !== null) {
+                    if (!Number.isInteger(sortOrder) || sortOrder < 1) {
+                        throw new Error(`Line ${i + 1}: sort_order must be an integer ≥ 1`);
+                    }
+                }
             }
         }
         if (quoteData.subtotal !== undefined && quoteData.subtotal < 0) {
@@ -274,6 +280,12 @@ export class QuoteService {
                 if (sectionIndex !== undefined && sectionIndex !== null) {
                     if (typeof sectionIndex !== 'number' || sectionIndex < 1) {
                         throw new Error(`Line ${i + 1}: section_index must be an integer ≥ 1`);
+                    }
+                }
+                const sortOrder = line.sort_order;
+                if (sortOrder !== undefined && sortOrder !== null) {
+                    if (!Number.isInteger(sortOrder) || sortOrder < 1) {
+                        throw new Error(`Line ${i + 1}: sort_order must be an integer ≥ 1`);
                     }
                 }
             }
