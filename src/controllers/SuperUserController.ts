@@ -92,16 +92,26 @@ export class SuperUserController {
       const newUser = await this.superUserService.createUserForCompany(companyIdNum, userData);
 
       // Log activity
-      // @ts-ignore
-      const adminUserId = req.user?.id;
-      await this.activityService.logActivity({
-        user_id: adminUserId,
-        company_id: companyIdNum,
-        action: 'user_created_by_admin',
-        description: `Super user created new user ${userData.email} for company ${companyIdNum}`,
-        ip_address: req.ip,
-        user_agent: req.get('User-Agent')
-      });
+      try {
+        // @ts-ignore
+        const adminUserId = req.user?.id;
+        let adminUserName = 'Admin';
+        if (adminUserId) {
+          const adminUser = await this.superUserService.getUserById(adminUserId);
+          adminUserName = adminUser?.name || adminUser?.email || 'Admin';
+        }
+        await this.activityService.logActivity({
+          user_id: adminUserId,
+          company_id: companyIdNum,
+          action: 'user_created_by_admin',
+          description: `${adminUserName} created new user ${userData.email} for company`,
+          ip_address: req.ip,
+          user_agent: req.get('User-Agent')
+        });
+      } catch (logError) {
+        console.error('Failed to log activity:', logError);
+        // Don't break the workflow if logging fails
+      }
 
       const response: ApiResponse = {
         success: true,
@@ -159,7 +169,6 @@ export class SuperUserController {
 
       const updateData: UpdateUserRequest = req.body;
       const updatedUser = await this.superUserService.updateUserInCompany(companyIdNum, userId, updateData);
-
       if (!updatedUser) {
         const response: ApiResponse = {
           success: false,
@@ -169,16 +178,26 @@ export class SuperUserController {
       }
 
       // Log activity
-      // @ts-ignore
-      const adminUserId = req.user?.id;
-      await this.activityService.logActivity({
-        user_id: adminUserId,
-        company_id: companyIdNum,
-        action: 'user_updated_by_admin',
-        description: `Super user updated user ${updatedUser.email} in company ${companyIdNum}`,
-        ip_address: req.ip,
-        user_agent: req.get('User-Agent')
-      });
+      try {
+        // @ts-ignore
+        const adminUserId = req.user?.id;
+        let adminUserName = 'Admin';
+        if (adminUserId) {
+          const adminUser = await this.superUserService.getUserById(adminUserId);
+          adminUserName = adminUser?.name || adminUser?.email || 'Admin';
+        }
+        await this.activityService.logActivity({
+          user_id: adminUserId,
+          company_id: companyIdNum,
+          action: 'user_updated_by_admin',
+          description: `${adminUserName} updated user ${updatedUser.email} in company`,
+          ip_address: req.ip,
+          user_agent: req.get('User-Agent')
+        });
+      } catch (logError) {
+        console.error('Failed to log activity:', logError);
+        // Don't break the workflow if logging fails
+      }
 
       const response: ApiResponse = {
         success: true,
@@ -235,16 +254,26 @@ export class SuperUserController {
       }
 
       // Log activity
-      // @ts-ignore
-      const adminUserId = req.user?.id;
-      await this.activityService.logActivity({
-        user_id: adminUserId,
-        company_id: companyIdNum,
-        action: 'user_removed_by_admin',
-        description: `Super user removed user ${userId} from company ${companyIdNum}`,
-        ip_address: req.ip,
-        user_agent: req.get('User-Agent')
-      });
+      try {
+        // @ts-ignore
+        const adminUserId = req.user?.id;
+        let adminUserName = 'Admin';
+        if (adminUserId) {
+          const adminUser = await this.superUserService.getUserById(adminUserId);
+          adminUserName = adminUser?.name || adminUser?.email || 'Admin';
+        }
+        await this.activityService.logActivity({
+          user_id: adminUserId,
+          company_id: companyIdNum,
+          action: 'user_removed_by_admin',
+          description: `${adminUserName} removed user ${userId} from company`,
+          ip_address: req.ip,
+          user_agent: req.get('User-Agent')
+        });
+      } catch (logError) {
+        console.error('Failed to log activity:', logError);
+        // Don't break the workflow if logging fails
+      }
 
       const response: ApiResponse = {
         success: true,
@@ -377,7 +406,9 @@ export class SuperUserController {
     try {
       // @ts-ignore - Get current user's company from auth context
       const userCompanyId = req.user?.company_id;
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string) : (req.query.limit ? parseInt(req.query.limit as string) : 20);
+      const offset = (page - 1) * pageSize;
       
       if (!userCompanyId) {
         const response: ApiResponse = {
@@ -387,11 +418,44 @@ export class SuperUserController {
         return res.status(400).json(response);
       }
 
-      const activities = await this.activityService.getCompanyActivities(userCompanyId, limit);
+      if (page < 1 || pageSize < 1 || pageSize > 100) {
+        const response: ApiResponse = {
+          success: false,
+          error: 'Invalid pagination parameters. Page must be >= 1, pageSize must be 1-100'
+        };
+        return res.status(400).json(response);
+      }
+
+      const [activities, totalCount] = await Promise.all([
+        this.activityService.getCompanyActivities(userCompanyId, pageSize, offset),
+        this.activityService.countActivitiesByCompany(userCompanyId)
+      ]);
       
+      // Transform activities to be more read-only friendly (no internal IDs)
+      const transformedActivities = activities.map((activity: any) => ({
+        action: activity.action,
+        description: activity.description || '',
+        performedBy: activity.user_name || activity.user_email || 'Unknown User',
+        performedByEmail: activity.user_email || '',
+        resourceType: activity.resource_type || '',
+        timestamp: activity.created_at,
+        ipAddress: activity.ip_address || '',
+        userAgent: activity.user_agent || ''
+      }));
+
       const response: ApiResponse = {
         success: true,
-        data: activities,
+        data: {
+          activities: transformedActivities,
+          pagination: {
+            currentPage: page,
+            pageSize: pageSize,
+            totalItems: totalCount,
+            totalPages: Math.ceil(totalCount / pageSize),
+            hasNextPage: page < Math.ceil(totalCount / pageSize),
+            hasPrevPage: page > 1
+          }
+        },
         message: 'Company user activities retrieved successfully'
       };
       return res.json(response);

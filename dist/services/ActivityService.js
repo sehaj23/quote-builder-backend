@@ -42,6 +42,9 @@ export class ActivityService {
     async countActivitiesByUser(userId, dateFrom, dateTo) {
         return this.activityRepository.countByUser(userId, dateFrom, dateTo);
     }
+    async countActivitiesByCompany(companyId, dateFrom, dateTo) {
+        return this.activityRepository.countByCompany(companyId, dateFrom, dateTo);
+    }
     async getMostActiveUsers(limit = 10, companyId) {
         return this.activityRepository.findMostActiveUsers(limit, companyId);
     }

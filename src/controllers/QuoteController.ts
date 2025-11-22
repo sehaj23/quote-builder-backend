@@ -1,9 +1,14 @@
 import { Request, Response } from 'express';
 import { QuoteService } from '../services/QuoteService.js';
 import { CreateQuoteRequest, UpdateQuoteRequest, ApiResponse } from '../types/index.js';
+import { ActivityService } from '../services/ActivityService.js';
+import { ActivityRepository } from '../repositories/ActivityRepository.js';
 
 export class QuoteController {
-  constructor(private quoteService: QuoteService) {}
+  private activityService: ActivityService;
+  constructor(private quoteService: QuoteService, activityService?: ActivityService) {
+    this.activityService = activityService || new ActivityService(new ActivityRepository());
+  }
 
   // GET /api/companies/:companyId/quotes
   async getQuotesByCompany(req: Request, res: Response): Promise<void> {
@@ -112,6 +117,26 @@ export class QuoteController {
         data: result,
         message: 'Quote created successfully'
       } as ApiResponse);
+      
+      // Log activity (non-blocking)
+      try {
+        // @ts-ignore
+        const userId = req.user?.id;
+        if (userId) {
+          await this.activityService.logActivity({
+            user_id: userId,
+            company_id: quoteData.company_id,
+            action: 'quote_created',
+            resource_type: 'quote',
+            resource_id: result.id,
+            description: `Created quote ${result.quote?.quote?.quote_number || ''}`,
+            ip_address: req.ip,
+            user_agent: req.get('User-Agent') || undefined
+          });
+        }
+      } catch (activityErr) {
+        console.warn('Activity logging failed (quote_created):', activityErr);
+      }
     } catch (error) {
       console.error('Error in QuoteController.createQuote:', error);
       res.status(400).json({
@@ -150,6 +175,28 @@ export class QuoteController {
         data: updatedQuote,
         message: 'Quote updated successfully'
       } as ApiResponse);
+      
+      // Log activity (non-blocking)
+      try {
+        // @ts-ignore
+        const userId = req.user?.id;
+        if (userId) {
+          // Determine company_id from updatedQuote
+          const companyId = updatedQuote.quote?.company_id || undefined;
+          await this.activityService.logActivity({
+            user_id: userId,
+            company_id: companyId,
+            action: 'quote_updated',
+            resource_type: 'quote',
+            resource_id: updatedQuote.quote?.id as number,
+            description: `Updated quote ${updatedQuote.quote?.quote_number || ''}`,
+            ip_address: req.ip,
+            user_agent: req.get('User-Agent') || undefined
+          });
+        }
+      } catch (activityErr) {
+        console.warn('Activity logging failed (quote_updated):', activityErr);
+      }
     } catch (error) {
       console.error('Error in QuoteController.updateQuote:', error);
       res.status(400).json({
@@ -172,6 +219,13 @@ export class QuoteController {
         return;
       }
 
+      // Fetch company_id before deletion for logging
+      let companyIdForLog: number | undefined = undefined;
+      try {
+        const existing = await this.quoteService.getQuoteById(quoteId);
+        companyIdForLog = existing?.quote?.company_id;
+      } catch {}
+
       const deleted = await this.quoteService.deleteQuote(quoteId);
       
       if (!deleted) {
@@ -187,6 +241,26 @@ export class QuoteController {
         data: null,
         message: 'Quote deleted successfully'
       } as ApiResponse);
+      
+      // Log activity (non-blocking)
+      try {
+        // @ts-ignore
+        const userId = req.user?.id;
+        if (userId) {
+          await this.activityService.logActivity({
+            user_id: userId,
+            company_id: companyIdForLog,
+            action: 'quote_deleted',
+            resource_type: 'quote',
+            resource_id: quoteId,
+            description: `Deleted quote ${quoteId}`,
+            ip_address: req.ip,
+            user_agent: req.get('User-Agent') || undefined
+          });
+        }
+      } catch (activityErr) {
+        console.warn('Activity logging failed (quote_deleted):', activityErr);
+      }
     } catch (error) {
       console.error('Error in QuoteController.deleteQuote:', error);
       res.status(400).json({

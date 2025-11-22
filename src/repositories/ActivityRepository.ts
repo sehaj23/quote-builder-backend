@@ -99,13 +99,14 @@ export class ActivityRepository {
     
     query += ' ORDER BY ua.created_at DESC';
     
+    // Use string interpolation for LIMIT/OFFSET to avoid MySQL parameter binding issues
     if (options.limit) {
+      const limitInt = parseInt(String(options.limit)) || 50;
       if (options.offset && options.offset > 0) {
-        query += ' LIMIT ? OFFSET ?';
-        params.push(options.limit, options.offset);
+        const offsetInt = parseInt(String(options.offset)) || 0;
+        query += ` LIMIT ${limitInt} OFFSET ${offsetInt}`;
       } else {
-        query += ' LIMIT ?';
-        params.push(options.limit);
+        query += ` LIMIT ${limitInt}`;
       }
     }
     
@@ -273,6 +274,26 @@ export class ActivityRepository {
     return rows[0]?.count || 0;
   }
 
+  async countByCompany(companyId: number, dateFrom?: string, dateTo?: string): Promise<number> {
+    const connection = getConnection();
+    
+    let query = 'SELECT COUNT(*) as count FROM user_activity WHERE company_id = ?';
+    const params: any[] = [companyId];
+    
+    if (dateFrom) {
+      query += ' AND created_at >= ?';
+      params.push(dateFrom);
+    }
+    
+    if (dateTo) {
+      query += ' AND created_at <= ?';
+      params.push(dateTo);
+    }
+    
+    const [rows] = await connection.execute<RowDataPacket[]>(query, params);
+    return rows[0]?.count || 0;
+  }
+
   async findMostActiveUsers(limit: number = 10, companyId?: number): Promise<Array<{ userId: string; userName: string; userEmail: string; activityCount: number }>> {
     const connection = getConnection();
     
@@ -289,8 +310,9 @@ export class ActivityRepository {
       params.push(companyId);
     }
     
-    query += ' GROUP BY ua.user_id, u.name, u.email ORDER BY activityCount DESC LIMIT ?';
-    params.push(limit);
+    // Use string interpolation for LIMIT to avoid MySQL parameter binding issues
+    const limitInt = parseInt(String(limit)) || 10;
+    query += ` GROUP BY ua.user_id, u.name, u.email ORDER BY activityCount DESC LIMIT ${limitInt}`;
     
     const [rows] = await connection.execute<RowDataPacket[]>(query, params);
     return rows as Array<{ userId: string; userName: string; userEmail: string; activityCount: number }>;

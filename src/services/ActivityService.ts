@@ -76,6 +76,10 @@ export class ActivityService {
     return this.activityRepository.countByUser(userId, dateFrom, dateTo);
   }
 
+  async countActivitiesByCompany(companyId: number, dateFrom?: string, dateTo?: string): Promise<number> {
+    return this.activityRepository.countByCompany(companyId, dateFrom, dateTo);
+  }
+
   async getMostActiveUsers(limit: number = 10, companyId?: number): Promise<Array<{
     userId: string;
     userName: string;

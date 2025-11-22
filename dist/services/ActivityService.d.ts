@@ -42,6 +42,7 @@ export declare class ActivityService {
         offset?: number;
     }): Promise<UserActivity[]>;
     countActivitiesByUser(userId: string, dateFrom?: string, dateTo?: string): Promise<number>;
+    countActivitiesByCompany(companyId: number, dateFrom?: string, dateTo?: string): Promise<number>;
     getMostActiveUsers(limit?: number, companyId?: number): Promise<Array<{
         userId: string;
         userName: string;

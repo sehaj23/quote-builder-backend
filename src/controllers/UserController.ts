@@ -173,6 +173,7 @@ export class UserController {
         return res.status(400).json(response);
       }
       const updateData: UpdateUserRequest = req.body;
+      console.log(updateData);
       const updatedUser = await this.userService.updateUser(userId, updateData);
 
       if (!updatedUser) {

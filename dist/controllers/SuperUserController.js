@@ -76,15 +76,25 @@ export class SuperUserController {
                 return res.status(400).json(response);
             }
             const newUser = await this.superUserService.createUserForCompany(companyIdNum, userData);
-            const adminUserId = req.user?.id;
-            await this.activityService.logActivity({
-                user_id: adminUserId,
-                company_id: companyIdNum,
-                action: 'user_created_by_admin',
-                description: `Super user created new user ${userData.email} for company ${companyIdNum}`,
-                ip_address: req.ip,
-                user_agent: req.get('User-Agent')
-            });
+            try {
+                const adminUserId = req.user?.id;
+                let adminUserName = 'Admin';
+                if (adminUserId) {
+                    const adminUser = await this.superUserService.getUserById(adminUserId);
+                    adminUserName = adminUser?.name || adminUser?.email || 'Admin';
+                }
+                await this.activityService.logActivity({
+                    user_id: adminUserId,
+                    company_id: companyIdNum,
+                    action: 'user_created_by_admin',
+                    description: `${adminUserName} created new user ${userData.email} for company ${companyIdNum}`,
+                    ip_address: req.ip,
+                    user_agent: req.get('User-Agent')
+                });
+            }
+            catch (logError) {
+                console.error('Failed to log activity:', logError);
+            }
             const response = {
                 success: true,
                 data: newUser,
@@ -143,15 +153,25 @@ export class SuperUserController {
                 };
                 return res.status(404).json(response);
             }
-            const adminUserId = req.user?.id;
-            await this.activityService.logActivity({
-                user_id: adminUserId,
-                company_id: companyIdNum,
-                action: 'user_updated_by_admin',
-                description: `Super user updated user ${updatedUser.email} in company ${companyIdNum}`,
-                ip_address: req.ip,
-                user_agent: req.get('User-Agent')
-            });
+            try {
+                const adminUserId = req.user?.id;
+                let adminUserName = 'Admin';
+                if (adminUserId) {
+                    const adminUser = await this.superUserService.getUserById(adminUserId);
+                    adminUserName = adminUser?.name || adminUser?.email || 'Admin';
+                }
+                await this.activityService.logActivity({
+                    user_id: adminUserId,
+                    company_id: companyIdNum,
+                    action: 'user_updated_by_admin',
+                    description: `${adminUserName} updated user ${updatedUser.email} in company ${companyIdNum}`,
+                    ip_address: req.ip,
+                    user_agent: req.get('User-Agent')
+                });
+            }
+            catch (logError) {
+                console.error('Failed to log activity:', logError);
+            }
             const response = {
                 success: true,
                 data: updatedUser,
@@ -200,15 +220,25 @@ export class SuperUserController {
                 };
                 return res.status(500).json(response);
             }
-            const adminUserId = req.user?.id;
-            await this.activityService.logActivity({
-                user_id: adminUserId,
-                company_id: companyIdNum,
-                action: 'user_removed_by_admin',
-                description: `Super user removed user ${userId} from company ${companyIdNum}`,
-                ip_address: req.ip,
-                user_agent: req.get('User-Agent')
-            });
+            try {
+                const adminUserId = req.user?.id;
+                let adminUserName = 'Admin';
+                if (adminUserId) {
+                    const adminUser = await this.superUserService.getUserById(adminUserId);
+                    adminUserName = adminUser?.name || adminUser?.email || 'Admin';
+                }
+                await this.activityService.logActivity({
+                    user_id: adminUserId,
+                    company_id: companyIdNum,
+                    action: 'user_removed_by_admin',
+                    description: `${adminUserName} removed user ${userId} from company ${companyIdNum}`,
+                    ip_address: req.ip,
+                    user_agent: req.get('User-Agent')
+                });
+            }
+            catch (logError) {
+                console.error('Failed to log activity:', logError);
+            }
             const response = {
                 success: true,
                 message: 'User removed from company successfully'
@@ -329,7 +359,9 @@ export class SuperUserController {
     async getCompanyUsersActivity(req, res) {
         try {
             const userCompanyId = req.user?.company_id;
-            const limit = req.query.limit ? parseInt(req.query.limit) : 20;
+            const page = req.query.page ? parseInt(req.query.page) : 1;
+            const pageSize = req.query.pageSize ? parseInt(req.query.pageSize) : (req.query.limit ? parseInt(req.query.limit) : 20);
+            const offset = (page - 1) * pageSize;
             if (!userCompanyId) {
                 const response = {
                     success: false,
@@ -337,10 +369,40 @@ export class SuperUserController {
                 };
                 return res.status(400).json(response);
             }
-            const activities = await this.activityService.getCompanyActivities(userCompanyId, limit);
+            if (page < 1 || pageSize < 1 || pageSize > 100) {
+                const response = {
+                    success: false,
+                    error: 'Invalid pagination parameters. Page must be >= 1, pageSize must be 1-100'
+                };
+                return res.status(400).json(response);
+            }
+            const [activities, totalCount] = await Promise.all([
+                this.activityService.getCompanyActivities(userCompanyId, pageSize, offset),
+                this.activityService.countActivitiesByCompany(userCompanyId)
+            ]);
+            const transformedActivities = activities.map((activity) => ({
+                action: activity.action,
+                description: activity.description || '',
+                performedBy: activity.user_name || activity.user_email || 'Unknown User',
+                performedByEmail: activity.user_email || '',
+                resourceType: activity.resource_type || '',
+                timestamp: activity.created_at,
+                ipAddress: activity.ip_address || '',
+                userAgent: activity.user_agent || ''
+            }));
             const response = {
                 success: true,
-                data: activities,
+                data: {
+                    activities: transformedActivities,
+                    pagination: {
+                        currentPage: page,
+                        pageSize: pageSize,
+                        totalItems: totalCount,
+                        totalPages: Math.ceil(totalCount / pageSize),
+                        hasNextPage: page < Math.ceil(totalCount / pageSize),
+                        hasPrevPage: page > 1
+                    }
+                },
                 message: 'Company user activities retrieved successfully'
             };
             return res.json(response);

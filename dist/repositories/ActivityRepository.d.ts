@@ -36,6 +36,7 @@ export declare class ActivityRepository {
     cleanup(daysToKeep?: number): Promise<number>;
     findByResourceId(resourceType: string, resourceId: number, companyId?: number): Promise<UserActivity[]>;
     countByUser(userId: string, dateFrom?: string, dateTo?: string): Promise<number>;
+    countByCompany(companyId: number, dateFrom?: string, dateTo?: string): Promise<number>;
     findMostActiveUsers(limit?: number, companyId?: number): Promise<Array<{
         userId: string;
         userName: string;

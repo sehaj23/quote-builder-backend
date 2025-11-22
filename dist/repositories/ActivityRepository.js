@@ -66,13 +66,13 @@ export class ActivityRepository {
         }
         query += ' ORDER BY ua.created_at DESC';
         if (options.limit) {
+            const limitInt = parseInt(String(options.limit)) || 50;
             if (options.offset && options.offset > 0) {
-                query += ' LIMIT ? OFFSET ?';
-                params.push(options.limit, options.offset);
+                const offsetInt = parseInt(String(options.offset)) || 0;
+                query += ` LIMIT ${limitInt} OFFSET ${offsetInt}`;
             }
             else {
-                query += ' LIMIT ?';
-                params.push(options.limit);
+                query += ` LIMIT ${limitInt}`;
             }
         }
         const [rows] = await connection.execute(query, params);
@@ -180,6 +180,21 @@ export class ActivityRepository {
         const [rows] = await connection.execute(query, params);
         return rows[0]?.count || 0;
     }
+    async countByCompany(companyId, dateFrom, dateTo) {
+        const connection = getConnection();
+        let query = 'SELECT COUNT(*) as count FROM user_activity WHERE company_id = ?';
+        const params = [companyId];
+        if (dateFrom) {
+            query += ' AND created_at >= ?';
+            params.push(dateFrom);
+        }
+        if (dateTo) {
+            query += ' AND created_at <= ?';
+            params.push(dateTo);
+        }
+        const [rows] = await connection.execute(query, params);
+        return rows[0]?.count || 0;
+    }
     async findMostActiveUsers(limit = 10, companyId) {
         const connection = getConnection();
         let query = `
@@ -193,8 +208,8 @@ export class ActivityRepository {
             query += ' AND ua.company_id = ?';
             params.push(companyId);
         }
-        query += ' GROUP BY ua.user_id, u.name, u.email ORDER BY activityCount DESC LIMIT ?';
-        params.push(limit);
+        const limitInt = parseInt(String(limit)) || 10;
+        query += ` GROUP BY ua.user_id, u.name, u.email ORDER BY activityCount DESC LIMIT ${limitInt}`;
         const [rows] = await connection.execute(query, params);
         return rows;
     }

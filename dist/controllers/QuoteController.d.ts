@@ -1,8 +1,10 @@
 import { Request, Response } from 'express';
 import { QuoteService } from '../services/QuoteService.js';
+import { ActivityService } from '../services/ActivityService.js';
 export declare class QuoteController {
     private quoteService;
-    constructor(quoteService: QuoteService);
+    private activityService;
+    constructor(quoteService: QuoteService, activityService?: ActivityService);
     getQuotesByCompany(req: Request, res: Response): Promise<void>;
     getQuoteById(req: Request, res: Response): Promise<void>;
     createQuote(req: Request, res: Response): Promise<void>;
