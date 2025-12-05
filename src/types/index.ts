@@ -63,7 +63,7 @@ export interface QuoteLine {
   id?: number;
   quote_id: number;
   company_id: number;
-  item_id: number;
+  item_id?: number | null;
   item_name?: string;
   item_unit?: string;
   item_category?: string;

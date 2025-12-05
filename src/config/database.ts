@@ -228,7 +228,7 @@ const createTables = async (): Promise<void> => {
         id INT PRIMARY KEY AUTO_INCREMENT,
         quote_id INT NOT NULL,
         company_id INT NOT NULL,
-        item_id INT NOT NULL,
+        item_id INT DEFAULT NULL,
         item_name VARCHAR(255),
         item_unit VARCHAR(50),
         item_category VARCHAR(100),
@@ -474,6 +474,28 @@ const createTables = async (): Promise<void> => {
       }
     } catch (e) {
       console.warn('⚠️  quote_lines section_* migration warning:', e);
+    }
+
+    // Migration: Allow quote_lines.item_id to be nullable for blank lines
+    try {
+      const [itemIdColumns] = await connection.execute(`
+        SELECT IS_NULLABLE 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = 'quote_lines' 
+          AND COLUMN_NAME = 'item_id'
+      `) as any[];
+      const currentNullability = itemIdColumns?.[0]?.IS_NULLABLE;
+      if (itemIdColumns.length > 0 && currentNullability === 'NO') {
+        console.log('🔧 Updating quote_lines.item_id to allow NULL values...');
+        await connection.execute(`
+          ALTER TABLE quote_lines 
+          MODIFY COLUMN item_id INT NULL
+        `);
+        console.log('✅ quote_lines.item_id column now accepts NULL (blank) entries');
+      }
+    } catch (e) {
+      console.warn('⚠️  quote_lines item_id nullability migration warning:', e);
     }
 
     // Migration: Add discount_type and fee columns to quotes table if they don't exist
