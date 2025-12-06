@@ -17,6 +17,8 @@ import superUserRoutes, { individualSuperUserRouter, activityRouter } from './ro
 import attachmentRoutes, { individualAttachmentRouter } from './routes/attachmentRoutes.js';
 import activityRoutes from './routes/activityRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import taskRoutes from './routes/taskRoutes.js';
+import webhookRoutes from './routes/webhookRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -113,6 +115,12 @@ app.use('/api/attachments', individualAttachmentRouter);
 
 // Activity routes
 app.use('/api/activities', activityRoutes);
+
+// Task routes (quote-scoped tasks)
+app.use('/api/tasks', taskRoutes);
+
+// Webhooks
+app.use('/api/webhooks', webhookRoutes);
 
 // Root endpoint
 app.get('/', (_req, res) => {

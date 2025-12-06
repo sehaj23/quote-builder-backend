@@ -1,1 +1,1 @@
-{"version":3,"file":"quoteRoutes.d.ts","sourceRoot":"","sources":["../../src/routes/quoteRoutes.ts"],"names":[],"mappings":"AAMA,QAAA,MAAM,MAAM,4CAAgC,CAAC;AAe7C,eAAO,MAAM,qBAAqB,4CAAW,CAAC;AAS9C,eAAe,MAAM,CAAC"}
+{"version":3,"file":"quoteRoutes.d.ts","sourceRoot":"","sources":["../../src/routes/quoteRoutes.ts"],"names":[],"mappings":"AASA,QAAA,MAAM,MAAM,4CAAgC,CAAC;AAkB7C,eAAO,MAAM,qBAAqB,4CAAW,CAAC;AAS9C,eAAe,MAAM,CAAC"}

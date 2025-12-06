@@ -255,6 +255,59 @@ const createTables = async (): Promise<void> => {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    // Tasks table (per-quote to-do items)
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS tasks (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        quote_id INT NOT NULL,
+        company_id INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        status ENUM('pending','in_progress','completed','blocked') DEFAULT 'pending',
+        priority ENUM('low','medium','high') DEFAULT 'medium',
+        due_at DATETIME,
+        assigned_to VARCHAR(255),
+        assigned_phone VARCHAR(30),
+        reminder_enabled BOOLEAN DEFAULT FALSE,
+        reminder_channel ENUM('whatsapp','email','none') DEFAULT 'whatsapp',
+        reminder_frequency ENUM('once','daily','weekly','before_due') DEFAULT 'once',
+        next_reminder_at DATETIME,
+        reminder_status ENUM('pending','sent','failed','snoozed') DEFAULT 'pending',
+        reminder_error TEXT,
+        created_by VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (quote_id) REFERENCES quotes (id) ON DELETE CASCADE,
+        FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE CASCADE,
+        INDEX idx_task_quote (quote_id),
+        INDEX idx_task_company (company_id),
+        INDEX idx_task_due (due_at),
+        INDEX idx_task_status (status),
+        INDEX idx_task_reminder (reminder_enabled, next_reminder_at, reminder_status)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // Task reminder logs table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS task_reminder_logs (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        task_id INT NOT NULL,
+        channel ENUM('whatsapp','email') DEFAULT 'whatsapp',
+        status ENUM('pending','sent','failed','snoozed') DEFAULT 'pending',
+        message_body TEXT,
+        provider_message_id VARCHAR(255),
+        error_message TEXT,
+        metadata JSON,
+        direction ENUM('outbound','inbound') DEFAULT 'outbound',
+        reply_from VARCHAR(255),
+        sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE,
+        INDEX idx_task_reminder_logs_task (task_id),
+        INDEX idx_task_reminder_logs_status (status)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     // Users table
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS users (
@@ -474,6 +527,85 @@ const createTables = async (): Promise<void> => {
       }
     } catch (e) {
       console.warn('⚠️  quote_lines section_* migration warning:', e);
+    }
+
+    // Migration: ensure tasks table exists (for legacy installs)
+    try {
+      const [tasksTable] = await connection.execute(`
+        SELECT TABLE_NAME
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'tasks'
+      `) as any[];
+      if (!tasksTable.length) {
+        console.log('➕ Creating tasks table...');
+        await connection.execute(`
+          CREATE TABLE tasks (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            quote_id INT NOT NULL,
+            company_id INT NOT NULL,
+            title VARCHAR(255) NOT NULL,
+            description TEXT,
+            status ENUM('pending','in_progress','completed','blocked') DEFAULT 'pending',
+            priority ENUM('low','medium','high') DEFAULT 'medium',
+            due_at DATETIME,
+            assigned_to VARCHAR(255),
+            assigned_phone VARCHAR(30),
+            reminder_enabled BOOLEAN DEFAULT FALSE,
+            reminder_channel ENUM('whatsapp','email','none') DEFAULT 'whatsapp',
+            reminder_frequency ENUM('once','daily','weekly','before_due') DEFAULT 'once',
+            next_reminder_at DATETIME,
+            reminder_status ENUM('pending','sent','failed','snoozed') DEFAULT 'pending',
+            reminder_error TEXT,
+            created_by VARCHAR(255),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (quote_id) REFERENCES quotes (id) ON DELETE CASCADE,
+            FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE CASCADE,
+            INDEX idx_task_quote (quote_id),
+            INDEX idx_task_company (company_id),
+            INDEX idx_task_due (due_at),
+            INDEX idx_task_status (status),
+            INDEX idx_task_reminder (reminder_enabled, next_reminder_at, reminder_status)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+      }
+    } catch (e) {
+      console.warn('⚠️  tasks table migration warning:', e);
+    }
+
+    // Migration: ensure task reminder logs table exists
+    try {
+      const [logsTable] = await connection.execute(`
+        SELECT TABLE_NAME
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'task_reminder_logs'
+      `) as any[];
+      if (!logsTable.length) {
+        console.log('➕ Creating task_reminder_logs table...');
+        await connection.execute(`
+          CREATE TABLE task_reminder_logs (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            task_id INT NOT NULL,
+            channel ENUM('whatsapp','email') DEFAULT 'whatsapp',
+            status ENUM('pending','sent','failed','snoozed') DEFAULT 'pending',
+            message_body TEXT,
+            provider_message_id VARCHAR(255),
+            error_message TEXT,
+            metadata JSON,
+            direction ENUM('outbound','inbound') DEFAULT 'outbound',
+            reply_from VARCHAR(255),
+            sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE,
+            INDEX idx_task_reminder_logs_task (task_id),
+            INDEX idx_task_reminder_logs_status (status)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+      }
+    } catch (e) {
+      console.warn('⚠️  task_reminder_logs table migration warning:', e);
     }
 
     // Migration: Allow quote_lines.item_id to be nullable for blank lines

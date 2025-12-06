@@ -87,7 +87,7 @@ export class SuperUserController {
                     user_id: adminUserId,
                     company_id: companyIdNum,
                     action: 'user_created_by_admin',
-                    description: `${adminUserName} created new user ${userData.email} for company ${companyIdNum}`,
+                    description: `${adminUserName} created new user ${userData.email} for company`,
                     ip_address: req.ip,
                     user_agent: req.get('User-Agent')
                 });
@@ -164,7 +164,7 @@ export class SuperUserController {
                     user_id: adminUserId,
                     company_id: companyIdNum,
                     action: 'user_updated_by_admin',
-                    description: `${adminUserName} updated user ${updatedUser.email} in company ${companyIdNum}`,
+                    description: `${adminUserName} updated user ${updatedUser.email} in company`,
                     ip_address: req.ip,
                     user_agent: req.get('User-Agent')
                 });
@@ -231,7 +231,7 @@ export class SuperUserController {
                     user_id: adminUserId,
                     company_id: companyIdNum,
                     action: 'user_removed_by_admin',
-                    description: `${adminUserName} removed user ${userId} from company ${companyIdNum}`,
+                    description: `${adminUserName} removed user ${userId} from company`,
                     ip_address: req.ip,
                     user_agent: req.get('User-Agent')
                 });

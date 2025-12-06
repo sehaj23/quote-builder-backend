@@ -57,7 +57,7 @@ export interface QuoteLine {
     id?: number;
     quote_id: number;
     company_id: number;
-    item_id: number;
+    item_id?: number | null;
     item_name?: string;
     item_unit?: string;
     item_category?: string;
@@ -77,6 +77,66 @@ export interface QuoteLine {
 export interface QuoteWithLines {
     quote: Quote;
     lines: QuoteLine[];
+    tasks?: Task[];
+}
+export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'blocked';
+export type TaskPriority = 'low' | 'medium' | 'high';
+export type TaskReminderFrequency = 'once' | 'daily' | 'weekly' | 'before_due';
+export type TaskReminderStatus = 'pending' | 'sent' | 'failed' | 'snoozed';
+export interface Task {
+    id?: number;
+    quote_id: number;
+    company_id: number;
+    title: string;
+    description?: string;
+    status: TaskStatus;
+    priority: TaskPriority;
+    due_at?: Date | string;
+    assigned_to?: string;
+    assigned_phone?: string;
+    reminder_enabled?: boolean;
+    reminder_channel?: 'whatsapp' | 'email' | 'none';
+    reminder_frequency?: TaskReminderFrequency;
+    next_reminder_at?: Date | string | null;
+    reminder_status?: TaskReminderStatus;
+    reminder_error?: string | null;
+    created_by?: string;
+    created_at?: Date;
+    updated_at?: Date;
+}
+export interface CreateTaskRequest extends Omit<Task, 'id' | 'created_at' | 'updated_at'> {
+}
+export interface UpdateTaskRequest extends Partial<CreateTaskRequest> {
+}
+export interface TaskFilterOptions {
+    status?: TaskStatus;
+    priority?: TaskPriority;
+    search?: string;
+    overdueOnly?: boolean;
+}
+export interface TaskProgressSummary {
+    total: number;
+    completed: number;
+    overdue: number;
+    in_progress: number;
+    pending: number;
+    percent_complete: number;
+}
+export interface TaskReminderLog {
+    id?: number;
+    task_id: number;
+    channel: 'whatsapp' | 'email';
+    status: TaskReminderStatus;
+    message_body?: string;
+    provider_message_id?: string | null;
+    error_message?: string | null;
+    metadata?: Record<string, any> | null;
+    direction?: 'outbound' | 'inbound';
+    reply_from?: string | null;
+    sent_at?: Date | string | null;
+    created_at?: Date;
+}
+export interface CreateTaskReminderLogRequest extends Omit<TaskReminderLog, 'id' | 'created_at'> {
 }
 export interface CreateCompanyRequest {
     name: string;
