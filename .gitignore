@@ -34,4 +34,6 @@ coverage/
 # OS
 .DS_Store
 Thumbs.db
-.dist/
+
+# Build output
+dist/
