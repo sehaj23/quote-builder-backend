@@ -1,17 +1,51 @@
 import { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { TaskService } from '../services/TaskService.js';
+import { ActivityService } from '../services/ActivityService.js';
+import { ActivityRepository } from '../repositories/ActivityRepository.js';
 import {
   ApiResponse,
   CreateTaskRequest,
   UpdateTaskRequest,
   TaskStatus,
   TaskPriority,
-  TaskFilterOptions
+  TaskFilterOptions,
+  Task
 } from '../types/index.js';
 
 export class TaskController {
-  constructor(private taskService: TaskService) {}
+  private activityService: ActivityService;
+
+  constructor(private taskService: TaskService, activityService?: ActivityService) {
+    this.activityService = activityService || new ActivityService(new ActivityRepository());
+  }
+
+  private async logTaskActivity(
+    req: Request,
+    action: 'task_created' | 'task_updated' | 'task_deleted',
+    task: Partial<Task> | null,
+    description?: string
+  ): Promise<void> {
+    try {
+      // @ts-ignore
+      const userId = req.user?.id;
+      if (!userId) {
+        return;
+      }
+      await this.activityService.logActivity({
+        user_id: userId,
+        company_id: task?.company_id,
+        action,
+        resource_type: 'task',
+        resource_id: task?.id,
+        description,
+        ip_address: req.ip,
+        user_agent: req.get('User-Agent') || undefined
+      });
+    } catch (error) {
+      console.warn(`Activity logging failed (${action}):`, error);
+    }
+  }
 
   async listTasks(req: Request, res: Response) {
     try {
@@ -122,6 +156,9 @@ export class TaskController {
         data: task,
         message: 'Task created successfully'
       } as ApiResponse);
+
+      const description = `Created task "${task.title}" for quote ${task.quote_id}`;
+      void this.logTaskActivity(req, 'task_created', task, description);
     } catch (error) {
       console.error('Error in TaskController.createTask:', error);
       res.status(400).json({
@@ -191,6 +228,9 @@ export class TaskController {
         data: updated,
         message: 'Task updated successfully'
       } as ApiResponse);
+
+      const description = `Updated task "${updated.title}" (status: ${updated.status})`;
+      void this.logTaskActivity(req, 'task_updated', updated, description);
     } catch (error) {
       console.error('Error in TaskController.updateTask:', error);
       res.status(400).json({
@@ -211,11 +251,20 @@ export class TaskController {
         return;
       }
 
-      const deleted = await this.taskService.deleteTask(taskId);
-      if (!deleted) {
+      const existing = await this.taskService.getTaskById(taskId);
+      if (!existing) {
         res.status(404).json({
           success: false,
           error: 'Task not found'
+        } as ApiResponse);
+        return;
+      }
+
+      const deleted = await this.taskService.deleteTask(taskId);
+      if (!deleted) {
+        res.status(500).json({
+          success: false,
+          error: 'Failed to delete task'
         } as ApiResponse);
         return;
       }
@@ -225,6 +274,9 @@ export class TaskController {
         data: null,
         message: 'Task deleted successfully'
       } as ApiResponse);
+
+      const description = `Deleted task "${existing.title}" (ID ${existing.id})`;
+      void this.logTaskActivity(req, 'task_deleted', existing, description);
     } catch (error) {
       console.error('Error in TaskController.deleteTask:', error);
       res.status(400).json({
