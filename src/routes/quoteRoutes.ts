@@ -2,6 +2,9 @@ import { Router } from 'express';
 import { QuoteController } from '../controllers/QuoteController.js';
 import { QuoteService } from '../services/QuoteService.js';
 import { QuoteRepository } from '../repositories/QuoteRepository.js';
+import { TaskRepository } from '../repositories/TaskRepository.js';
+import { TaskReminderLogRepository } from '../repositories/TaskReminderLogRepository.js';
+import { TaskService } from '../services/TaskService.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router({ mergeParams: true });
@@ -9,7 +12,10 @@ const router = Router({ mergeParams: true });
 // Dependency injection
 const quoteRepository = new QuoteRepository();
 const quoteService = new QuoteService(quoteRepository);
-const quoteController = new QuoteController(quoteService);
+const taskRepository = new TaskRepository();
+const taskReminderLogRepository = new TaskReminderLogRepository();
+const taskService = new TaskService(taskRepository, taskReminderLogRepository);
+const quoteController = new QuoteController(quoteService, undefined, taskService);
 
 // Quote routes
 // Note: These routes are mounted under /api/companies/:companyId/quotes and /api/quotes

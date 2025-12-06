@@ -2,9 +2,11 @@ import { ActivityService } from '../services/ActivityService.js';
 import { ActivityRepository } from '../repositories/ActivityRepository.js';
 export class QuoteController {
     quoteService;
+    taskService;
     activityService;
-    constructor(quoteService, activityService) {
+    constructor(quoteService, activityService, taskService) {
         this.quoteService = quoteService;
+        this.taskService = taskService;
         this.activityService = activityService || new ActivityService(new ActivityRepository());
     }
     async getQuotesByCompany(req, res) {
@@ -77,9 +79,22 @@ export class QuoteController {
                 });
                 return;
             }
+            let taskSummary = null;
+            if (this.taskService) {
+                taskSummary = await this.taskService.getQuoteTaskProgress(quoteId);
+                try {
+                    const tasks = await this.taskService.getTasksByQuote(quoteId);
+                    if (quote) {
+                        quote.tasks = tasks;
+                    }
+                }
+                catch (taskErr) {
+                    console.warn('Failed to load tasks for quote:', taskErr);
+                }
+            }
             res.json({
                 success: true,
-                data: quote,
+                data: taskSummary ? { ...quote, task_summary: taskSummary } : quote,
                 message: 'Quote retrieved successfully'
             });
         }

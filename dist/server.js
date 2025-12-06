@@ -13,6 +13,8 @@ import superUserRoutes, { individualSuperUserRouter, activityRouter } from './ro
 import attachmentRoutes, { individualAttachmentRouter } from './routes/attachmentRoutes.js';
 import activityRoutes from './routes/activityRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import taskRoutes from './routes/taskRoutes.js';
+import webhookRoutes from './routes/webhookRoutes.js';
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -78,6 +80,8 @@ app.use('/api/admin', activityRouter);
 app.use('/api/companies', attachmentRoutes);
 app.use('/api/attachments', individualAttachmentRouter);
 app.use('/api/activities', activityRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/webhooks', webhookRoutes);
 app.get('/', (_req, res) => {
     const response = {
         success: true,
