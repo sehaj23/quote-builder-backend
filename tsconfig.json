@@ -3,7 +3,8 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "node",
-    "lib": ["ES2022"],
+    "lib": ["ES2022"],               // keep ES features
+    "types": ["node"],               // <--- add this line for Node globals
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
@@ -40,12 +41,6 @@
       "@/middleware/*": ["middleware/*"]
     }
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.ts"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }
